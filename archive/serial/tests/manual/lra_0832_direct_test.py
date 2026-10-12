@@ -1,8 +1,11 @@
 """Directly prove that the standalone 0832 LRA firmware can vibrate."""
 import time
+import sys
+from pathlib import Path
 
 import serial
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from kick_only_debug import PORT, SERIAL_BAUD
 
 

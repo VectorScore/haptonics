@@ -8,7 +8,7 @@ from unittest import mock
 import numpy as np
 
 
-TRIAL_PATH = Path(__file__).with_name("trial-1.py")
+TRIAL_PATH = Path(__file__).resolve().parents[1] / "trial-1.py"
 SPEC = importlib.util.spec_from_file_location("trial_1_module", TRIAL_PATH)
 trial_1 = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
