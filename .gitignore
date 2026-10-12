@@ -1,0 +1,28 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.cache/
+.env
+.env.*
+*.log
+
+# ESP-IDF outputs
+build/
+build_*/
+managed_components/
+sdkconfig.old
+
+# Local previews, exports, and reference material
+.playwright-cli/
+.playwright-mcp/
+output/
+tmp/
+Documentation/
+web.zip
+/assets/
+*.docx
+*_BACKUP*.md
+web/shepherd-wind-preview.html

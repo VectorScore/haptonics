@@ -1,0 +1,2184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haptonics · Web App 前端原型</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#141926; --panel2:#1b2233; --card:#1a2132;
+    --line:#2a3350; --txt:#e8ecf5; --sub:#8a93ad;
+    --accent:#5eead4; --accent2:#818cf8; --pink:#f472b6; --warn:#fbbf24;
+    --ok:#34d399;
+    --radius:16px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, #16203a 0%, transparent 60%),
+      radial-gradient(900px 500px at 100% 110%, #172a33 0%, transparent 55%),
+      var(--bg);
+    color:var(--txt);
+    font-family:"PingFang SC","Microsoft YaHei","HarmonyOS Sans SC",-apple-system,sans-serif;
+    min-height:100vh; padding:28px 20px; display:flex; justify-content:center;
+  }
+  .stage{display:flex; gap:48px; align-items:flex-start; flex-wrap:wrap; justify-content:center; max-width:1200px}
+
+  /* ============ 手机模拟框 ============ */
+  .phone{
+    width:390px; height:812px; flex:0 0 auto;
+    background:#000; border-radius:54px; padding:14px;
+    box-shadow:0 30px 80px rgba(0,0,0,.6), 0 0 0 2px #262c3f, inset 0 0 0 2px #0a0c12;
+    position:relative;
+  }
+  .phone-screen{
+    width:100%; height:100%; border-radius:42px; overflow:hidden;
+    background:var(--bg); position:relative; display:flex; flex-direction:column;
+  }
+  .notch{position:absolute; top:12px; left:50%; transform:translateX(-50%); width:120px; height:28px; background:#000; border-radius:14px; z-index:50}
+  .statusbar{height:52px; flex:0 0 auto; display:flex; align-items:flex-end; justify-content:space-between; padding:0 26px 4px; font-size:13px; color:var(--txt); font-weight:600}
+  .sb-icons{display:flex; gap:6px; align-items:center}
+  .bt-on{color:var(--accent)}
+
+  .screens{flex:1; position:relative; overflow:hidden}
+  .screen{position:absolute; inset:0; padding:6px 20px 16px; overflow-y:auto; opacity:0; pointer-events:none; transform:translateY(8px); transition:opacity .28s, transform .28s}
+  .screen.active{opacity:1; pointer-events:auto; transform:none}
+  .screen::-webkit-scrollbar{width:0}
+
+  /* ============ 通用组件 ============ */
+  .h1{font-size:26px; font-weight:700; margin:10px 0 4px}
+  .sub{color:var(--sub); font-size:13px; line-height:1.6}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-top:14px}
+  .card-title{font-size:15px; font-weight:600; display:flex; align-items:center; gap:8px; margin-bottom:10px}
+  .card-title .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .btn{
+    border:none; border-radius:12px; padding:12px 18px; font-size:15px; font-weight:600;
+    background:var(--panel2); color:var(--txt); cursor:pointer; transition:.2s; font-family:inherit;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0b0e14}
+  .btn.block{width:100%}
+  .btn.ghost{background:transparent; border:1px solid var(--line)}
+  .btn:disabled{opacity:.4; cursor:not-allowed}
+
+  /* 开关 */
+  .switch{width:48px; height:28px; border-radius:14px; background:var(--line); position:relative; cursor:pointer; transition:.25s; flex:0 0 auto}
+  .switch::after{content:''; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:#fff; transition:.25s}
+  .switch.on{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .switch.on::after{left:23px}
+
+  /* 标签页 */
+  .tabbar{
+    flex:0 0 auto; height:76px; background:rgba(16,20,32,.92); backdrop-filter:blur(12px);
+    border-top:1px solid var(--line); display:flex; padding:8px 12px 18px; gap:4px;
+  }
+  .tab{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; color:var(--sub); cursor:pointer; font-size:11px; border-radius:12px; transition:.2s}
+  .tab svg{width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+  .tab.active{color:var(--accent)}
+  .tab.active svg{filter:drop-shadow(0 0 8px rgba(94,234,212,.6))}
+
+  /* 首页 */
+  .hero-visual{height:170px; border-radius:20px; margin-top:14px; position:relative; overflow:hidden; background:radial-gradient(circle at 50% 120%, #1e3a5f, #0e1420); border:1px solid var(--line); display:flex; align-items:center; justify-content:center}
+  .hero-visual canvas{width:100%; height:100%}
+  .quick-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px}
+  .quick-card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px 14px; cursor:pointer; transition:.2s}
+  .quick-card:active{transform:scale(.97)}
+  .quick-card .ic{width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:10px}
+  .quick-card b{font-size:15px; display:block; margin-bottom:3px}
+  .quick-card span{font-size:11.5px; color:var(--sub); line-height:1.5; display:block}
+  .device-strip{display:flex; align-items:center; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-top:14px}
+  .device-strip .ring{width:38px;height:38px;border-radius:50%;border:2px solid var(--line); display:flex;align-items:center;justify-content:center; font-size:17px}
+  .device-strip.connected .ring{border-color:var(--ok); box-shadow:0 0 12px rgba(52,211,153,.35)}
+  .mood-chips{display:flex; gap:8px; margin-top:10px}
+  .mood{flex:1; text-align:center; padding:10px 0; border-radius:12px; background:var(--panel2); cursor:pointer; font-size:20px; border:1.5px solid transparent; transition:.2s}
+  .mood.sel{border-color:var(--accent2); background:#232c48}
+
+  /* 律动页 */
+  .band-meters{display:flex; gap:10px; margin-top:4px}
+  .bm{flex:1; background:var(--panel2); border-radius:12px; padding:10px 10px 12px; text-align:center}
+  .bm .bar-wrap{height:74px; display:flex; align-items:flex-end; justify-content:center; margin-bottom:6px}
+  .bm .bar{width:22px; border-radius:6px; background:linear-gradient(to top,#312e81,#22d3ee); height:4%; transition:height .08s linear}
+  .bm.b1 .bar{background:linear-gradient(to top,#7c2d92,#f472b6)}
+  .bm.b3 .bar{background:linear-gradient(to top,#065f46,#34d399)}
+  .bm small{color:var(--sub); font-size:11px}
+  .fx-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+  .fx{background:var(--panel2); border:1.5px solid var(--line); border-radius:14px; padding:10px 6px; text-align:center; cursor:pointer; transition:.2s}
+  .fx.sel{border-color:var(--accent); background:#17332f; box-shadow:0 0 16px rgba(94,234,212,.15)}
+  .fx canvas{width:100%; height:64px; border-radius:8px; background:#0d1120}
+  .fx small{font-size:11px; color:var(--sub)}
+  .fx.sel small{color:var(--accent)}
+  .src-seg{display:flex; background:var(--panel2); border-radius:12px; padding:4px; gap:4px; margin-top:10px}
+  .src-seg button{flex:1; border:none; background:transparent; color:var(--sub); padding:8px 0; border-radius:9px; font-size:13px; cursor:pointer; font-family:inherit; transition:.2s}
+  .src-seg button.sel{background:var(--card); color:var(--txt); font-weight:600}
+  .file-name{font-size:12px; color:var(--sub); margin-top:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ble-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px}
+  .ble-stat{background:var(--panel2); border-radius:10px; padding:8px; text-align:center}
+  .ble-stat b{display:block; font-size:16px; color:var(--accent)}
+  .ble-stat small{font-size:10px; color:var(--sub)}
+
+  /* 疗愈页 */
+  .mode-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+  .mode-card{background:var(--panel2); border:1.5px solid var(--line); border-radius:14px; padding:12px 8px; text-align:center; cursor:pointer; transition:.2s}
+  .mode-card.sel{border-color:var(--accent2); background:#232c48}
+  .mode-card b{display:block; font-size:16px; margin-bottom:2px}
+  .mode-card small{color:var(--sub); font-size:10.5px}
+  .phase-legend{display:flex; gap:8px; margin-top:12px}
+  .pl{flex:1; border-radius:10px; padding:8px; font-size:11px; color:var(--sub); text-align:center; line-height:1.5}
+  .pl b{display:block; color:var(--txt); font-size:12px}
+  .pl.vib{background:#3a1d2e}
+  .pl.vib b{color:var(--pink)}
+  .pl.calm{background:#132c33}
+  .pl.calm b{color:var(--accent)}
+
+  /* 设备页 */
+  .dev-card{display:flex; gap:14px; align-items:center}
+  .watch-mini{width:64px; height:76px; border-radius:18px; border:3px solid #3a4260; background:#05070d; display:flex; align-items:center; justify-content:center; position:relative}
+  .watch-mini::before,.watch-mini::after{content:''; position:absolute; left:50%; transform:translateX(-50%); width:26px; height:10px; background:#232a42; border-radius:4px}
+  .watch-mini::before{top:-10px} .watch-mini::after{bottom:-10px}
+  .watch-mini span{font-size:9px; color:#3b4a6b}
+  .kv{display:flex; justify-content:space-between; font-size:13px; padding:9px 0; border-bottom:1px dashed var(--line)}
+  .kv:last-child{border-bottom:none}
+  .kv .k{color:var(--sub)} .kv .v{font-weight:600}
+
+  /* ============ 手表模拟器 ============ */
+  .rig{display:flex; flex-direction:column; align-items:center; gap:18px; padding-top:36px}
+  .rig-title{font-size:13px; color:var(--sub); letter-spacing:2px}
+  .watch-device{position:relative; width:250px; text-align:center}
+  .strap{width:120px; height:64px; margin:0 auto; background:linear-gradient(#20273d,#171c2e); border-radius:8px 8px 0 0; box-shadow:inset 0 6px 14px rgba(0,0,0,.5)}
+  .strap.bottom{border-radius:0 0 8px 8px; box-shadow:inset 0 -6px 14px rgba(0,0,0,.5)}
+  .watch-shell{
+    width:250px; height:250px; margin:0 auto; border-radius:50%;
+    background:linear-gradient(145deg,#2b3247,#12162a);
+    padding:16px; box-shadow:0 26px 60px rgba(0,0,0,.65), inset 0 1px 3px rgba(255,255,255,.14);
+    position:relative;
+  }
+  .crown{position:absolute; right:-7px; top:100px; width:12px; height:34px; border-radius:4px; background:linear-gradient(#4a5372,#2a3049)}
+  .watch-canvas-wrap{width:100%; height:100%; border-radius:50%; overflow:hidden; background:#000; position:relative; box-shadow:inset 0 0 24px rgba(0,0,0,.9)}
+  .watch-canvas-wrap canvas{width:100%; height:100%; display:block}
+  .vibe-meter{width:250px; margin-top:14px}
+  .vibe-meter .track{height:10px; border-radius:5px; background:var(--panel2); overflow:hidden; position:relative}
+  .vibe-meter .fill{height:100%; width:0%; background:linear-gradient(90deg,var(--pink),#fda4af); border-radius:5px; transition:width .1s linear}
+  .vibe-meter .labels{display:flex; justify-content:space-between; font-size:10px; color:var(--sub); margin-top:6px}
+  .rig-stats{width:250px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; font-size:11.5px; color:var(--sub); line-height:1.9}
+  .rig-stats b{color:var(--txt)}
+  .rig-stats .live{color:var(--accent)}
+
+  /* 架构说明 */
+  .arch{margin-top:10px; width:100%; max-width:1100px}
+  .arch svg{width:100%; height:auto}
+  .hint{font-size:12px; color:var(--sub); text-align:center; margin-top:8px}
+  @media (max-width:1020px){ .rig{padding-top:0} }
+
+.tab{border:0;background:transparent;font-family:inherit}.tabbar{padding-left:5px;padding-right:5px}
+button.quick-card{color:var(--txt);text-align:left;font-family:inherit}
+.back{border:0;background:transparent;color:var(--accent);font:inherit;font-size:12px;padding:10px 0;cursor:pointer}
+.diary-entry{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--txt);font:inherit;text-align:left;cursor:pointer}
+.calendar{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-top:12px}.weekdays{text-align:center;font-size:11px;color:var(--sub)}
+.day{min-height:43px;border:1px solid transparent;border-radius:9px;background:var(--panel2);color:var(--txt);font-size:12px;cursor:pointer;line-height:1.5;overflow-wrap:anywhere}.day.today{color:var(--accent)}.day.selected{border-color:var(--accent);background:#17332f}.day:disabled{opacity:.28;cursor:default}
+.mood{color:var(--txt)}.tag{display:inline-block;margin:18px 0 10px;padding:6px 12px;border:1px solid var(--line);border-radius:20px;font-size:12px;color:var(--accent)}
+.hero-visual{height:220px}.visual-label{position:absolute;top:14px;left:14px;right:14px;display:flex;justify-content:space-between;font-size:10px;color:var(--accent)}
+.file-name{white-space:normal}.src-seg{flex-wrap:wrap}.src-seg button{min-width:60px;font-size:11px}
+select{display:block;width:100%;padding:10px;margin-top:6px;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--txt);font:inherit;font-size:12px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.arch{display:none}
+@media(max-width:440px){body{padding:0;display:block}.stage{display:block}.phone{width:100%;height:100dvh;border-radius:0;padding:0;box-shadow:none}.phone-screen{border-radius:0}.rig{display:none}.tabbar{padding-bottom:max(16px,env(safe-area-inset-bottom))}}
+[hidden]{display:none!important}
+:root{--bg:#0b0b20;--panel:#15152f;--panel2:#20203f;--card:#191a38;--line:#34365c;--accent:#b5a0ff;--accent2:#7388ff;--sub:#a6a6c5}
+.hero-visual{height:165px;background:radial-gradient(ellipse at center,#24225a,#101026)}
+#scr-home .quick-card{padding:11px;min-height:88px}#scr-home .quick-card .ic{float:left;width:30px;height:30px;margin-right:8px;margin-bottom:5px;font-size:17px}#scr-home .quick-card b{font-size:14px}#scr-home .quick-card span{clear:both;font-size:10px}#scr-home .quick-grid{gap:8px;margin-top:10px}
+.settings-dropdown{padding:11px 13px;margin-top:10px}.settings-dropdown>summary{cursor:pointer;font-size:13px;display:flex;justify-content:space-between}.settings-dropdown .card{border:0;padding:8px 0;background:transparent}.field{display:block;margin:18px 0;font-size:13px}.field input{display:block;width:100%;margin-top:8px;accent-color:var(--accent)}input[type=number]{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:10px;border-radius:8px}.beat-display{text-align:center;font-size:38px;color:var(--accent);padding:25px 0}.haptic-note{margin-top:16px}.shop-effect{width:100%;display:flex;align-items:center;gap:12px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:16px;border-radius:12px;margin-top:12px;text-align:left;cursor:pointer}.shop-effect>span:first-child{font-size:32px;color:var(--accent)}.shop-effect div{flex:1}.shop-effect small{display:block;color:var(--sub);margin-top:5px}
+.shop-effect[aria-pressed="true"]{border-color:var(--accent);background:#30264d}
+body{background:var(--bg)}.hero-visual{background:radial-gradient(ellipse at center,var(--panel2),var(--bg))}.btn.primary{color:var(--bg)}.quick-card .ic{background:var(--panel2)!important;color:var(--accent)}.screen{font-size:calc(14px * var(--text-scale,1))}.sub{font-size:calc(13px * var(--text-scale,1))}.h1{font-size:calc(26px * var(--text-scale,1))}.tabbar{background:var(--panel)}.shop-effect[aria-pressed=true],.day.selected,.fx.sel,.mode-card.sel,.mood.sel{background:var(--panel2);border-color:var(--accent)}.pl.vib,.pl.calm{background:var(--panel2)}.line-icon{width:1.35em;height:1.35em;display:inline-block;vertical-align:-.25em;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;color:var(--accent)}
+
+.field:has(input[type=checkbox]){display:flex;align-items:center;justify-content:space-between;gap:16px;flex-direction:row-reverse}.field input[type=checkbox]{width:18px;height:18px;margin:0;flex:none;accent-color:var(--accent)}
+input[type=color]{padding:0!important;border:0!important;border-radius:12px;overflow:hidden;height:38px;cursor:pointer}input[type=color]::-webkit-color-swatch-wrapper{padding:0}input[type=color]::-webkit-color-swatch{border:0;border-radius:12px}input[type=color]::-moz-color-swatch{border:0;border-radius:12px}
+.mode-card b{font-size:12px;white-space:nowrap}.switch{width:36px;height:22px}.switch::after{width:16px;height:16px}.switch.on::after{left:17px}.native-emoji{font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;font-size:25px;line-height:1.3}.day .native-emoji{font-size:17px}.mood-chips{flex-wrap:wrap}.mood{min-width:42px}
+.hero-visual{height:205px}.hero-visual canvas{width:156px;height:156px;border:7px solid #34313e;border-radius:42px;background:#08080d;box-shadow:0 0 0 2px #77717e,0 12px 25px #0006;margin-top:17px}.visual-label{top:8px;font-size:10px}
+.shop-columns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.shop-columns>.card{min-width:0;padding:12px}.shop-columns .shop-effect{display:flex;flex-direction:column;text-align:center;gap:6px;padding:12px 2px;min-height:140px}.shop-columns small{display:none}.shop-columns .shop-effect svg{height:38px}.shop-columns .shop-effect>span:first-child{font-size:28px}.shop-columns .shop-effect b{font-size:13px}
+.danger{color:#ef5365;border:1px solid #ef5365;margin-top:12px}dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:20px;max-width:min(380px,90vw);padding:22px}dialog::backdrop{background:#0009}dialog p{line-height:1.7}.emoji-picker{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.emoji-picker button{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:5px}.info-button{float:right;border:0;background:none;color:var(--accent);font-size:18px;cursor:pointer}details>summary{cursor:pointer}.settings-dropdown>.card{margin-top:12px}
+[hidden]{display:none!important}
+
+.hero-visual canvas{border-radius:50%}.rig-stats>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.rig-stats>div b{margin-left:auto;text-align:right}
+.shop-columns .shop-effect{min-height:88px;padding:9px 4px;gap:4px}.shop-columns .shop-effect svg{width:28px;height:28px}.shop-columns .shop-effect>span:first-child{font-size:22px}.shop-columns .shop-effect>span:last-child{font-size:11px}.more-link{display:block;width:100%;background:none;border:0;color:var(--accent);font:inherit;cursor:pointer;padding:12px 0 0}
+.phone-modal-layer{position:absolute;inset:0;z-index:100;background:#0007;display:flex;align-items:center;justify-content:center;padding:18px}.phone-dialog{width:100%;max-height:90%;display:flex;flex-direction:column;padding:20px;border-radius:22px;border:1px solid var(--line);background:var(--panel);box-shadow:0 12px 40px #0004}.phone-dialog h3{margin:0 0 16px;font-size:18px;color:var(--txt)}.dialog-body{overflow:auto;min-height:0}.dialog-copy{font-size:14px;line-height:1.8;margin:0 0 14px;color:var(--txt)}.phone-dialog>.btn{margin-top:16px;flex:none}.phone-dialog .emoji-picker{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}.phone-dialog .emoji-picker button{padding:7px 0}.phone-dialog .sub{font-size:11px;margin:14px 0;line-height:1.5}.phone-dialog input:not([type=range]){width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);margin:8px 0}.phone-dialog .dialog-body>.btn{width:100%;margin-top:8px}
+.today-mood{display:flex;align-items:center;gap:6px;margin-top:12px;flex-wrap:wrap}.today-mood .mood{padding:5px;min-width:36px}.today-mood .native-emoji{font-size:23px}.today-mood .mood-label{color:var(--sub);font-size:12px;margin-right:auto}.music-player{display:grid;gap:10px;margin-top:12px}.player-row{display:flex;gap:10px;align-items:center}.player-row input{width:100%;min-width:0;accent-color:var(--accent)}.player-time{font-variant-numeric:tabular-nums;text-align:right;color:var(--sub);font-size:12px}.music-player button{padding:8px 14px}
+
+.screen{font-size:calc(15px * var(--text-scale,1))}.sub,.field,.card-title,.screen label,.screen .btn,.screen input,.screen select,.screen summary{font-size:calc(14px * var(--text-scale,1))!important}.screen small{font-size:calc(12px * var(--text-scale,1))!important}.screen .quick-card b{font-size:calc(15px * var(--text-scale,1))}.screen select{min-height:48px;border-radius:13px;padding:12px 36px 12px 14px;background-color:var(--panel2);color:var(--txt);border:1px solid var(--line)}.phone-dialog{font-size:calc(15px * var(--text-scale,1))}.select-options{display:grid;gap:7px}.select-options button{min-height:48px;text-align:left;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--txt);font:inherit}.select-options button[aria-selected=true]{border-color:var(--accent);color:var(--accent)}
+
+#audioControls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}#audioControls>.settings-dropdown{margin:12px 0 0;padding:14px 12px;min-width:0}#audioControls>.settings-dropdown>summary{display:flex;flex-direction:column;align-items:flex-start;gap:8px;list-style:none;font-weight:600}#audioControls>.settings-dropdown>summary::-webkit-details-marker{display:none}#audioControls>.settings-dropdown>summary .sub{font-weight:400}.motion-options{margin:16px 0;border:1px solid var(--line);border-radius:12px;padding:12px}.motion-options>summary{display:flex;justify-content:space-between;gap:8px;list-style:none}.motion-options>summary::-webkit-details-marker{display:none}#scr-watch-design .hero-visual{margin-bottom:16px}#scr-watch-design label> b{font-weight:700}
+
+#sharedWatchPreview{height:245px;padding-bottom:38px}.preview-switch{position:absolute;bottom:8px;left:14px;right:14px;display:flex;gap:6px}.preview-switch button{flex:1;border:1px solid var(--line);border-radius:9px;padding:6px;background:var(--panel);color:var(--sub);cursor:pointer}.preview-switch button[aria-pressed=true]{color:var(--accent);border-color:var(--accent)}#sharedWatchPreview #previewSpectrum{width:94%;height:160px;border:0;border-radius:0;background:none;box-shadow:none;margin-top:15px}
+#petCard .field{margin:0}#petCard select{margin-top:12px}#motionOptions[open]{background:var(--panel2);border-radius:12px;padding:12px}#motionOptions .field:last-child{margin-bottom:0}
+.shop-columns .shop-effect{height:112px;min-height:112px;overflow:hidden}.shop-columns .shop-effect img,.shop-columns .shop-effect svg{width:28px;height:28px;flex-shrink:0}.shop-columns .shop-effect div{flex:0}.shop-columns .shop-effect>span:last-child{margin-top:auto}#scr-pets #petGrid,#scr-effects>.card:first-of-type{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}#scr-pets .shop-effect,#scr-effects .shop-effect{height:112px;min-width:0;flex-direction:column;text-align:center;padding:8px;gap:4px}#scr-pets .shop-effect small,#scr-effects .shop-effect small{display:none}#scr-pets .shop-effect svg,#scr-pets .shop-effect img{width:28px;height:28px}#scr-effects>.card:first-of-type>b,#scr-effects>.card:first-of-type>p{grid-column:1/-1}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ==================== 手机 ==================== -->
+  <div class="phone">
+    <div class="phone-screen">
+      <div class="notch"></div>
+      <div class="statusbar">
+        <span>15:24</span>
+        <div class="sb-icons">
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.5" y="5" width="3" height="7" rx="1"/><rect x="9" y="2.5" width="3" height="9.5" rx="1"/><rect x="13.5" y="0" width="3" height="12" rx="1" opacity=".3"/></svg>
+          <svg width="24" height="14" viewBox="0 0 24 14" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 8 L2 5 M8 8 L6 4.5 M12 8 L10 4.5 M16 8 L14 4.5 M20 8 L18 5" stroke-linecap="round"/><path id="btIcon" d="M21 8.2 L9.5 14.5 V2 Z" fill="currentColor" stroke="none" opacity="0"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x=".5" y=".5" width="20" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="14" height="9" rx="2" fill="currentColor"/><path d="M22.5 4.5 v4 a2.5 2.5 0 0 0 0-4Z" fill="currentColor" opacity=".5"/></svg>
+        </div>
+      </div>
+
+      <div class="screens">
+
+        <!-- ============ 首页 ============ -->
+        <section class="screen active" id="scr-home">
+          <div class="h1">Haptonics</div>
+          <div class="sub">感受音乐，看见律动。</div>
+
+
+          <div class="hero-visual"><canvas id="heroCanvas" aria-label="实时音频频谱和波形环"></canvas><div class="visual-label"><span>声音的形状</span><span id="visualState">等待音频</span></div></div><div id="homeControlHost"></div><details id="homeControls" class="card settings-dropdown"><summary>音频源与律动效果 <span id="disclosureLabel" class="sub">展开 ▾</span></summary><div id="audioControls"><select id="visualPreset" hidden></select><select id="petSelect" hidden></select>          <div class="card">
+            <div class="card-title"><span class="dot"></span>音频源</div>
+            <div class="src-seg" id="srcSeg">
+              <button data-src="demo" class="sel">演示节奏</button>
+              <button data-src="file">上传音乐</button>
+              <button data-src="mic">麦克风</button><button data-src="system">设备音频</button>
+            </div>
+            <div class="file-name" id="srcDesc">内置演示节奏：128 BPM 电子鼓点（无需麦克风权限）</div>
+            <div id="inputControls" hidden style="margin-top:10px"><label class="sub" for="inputDevice">音频输入设备</label><select id="inputDevice"><option value="">系统默认输入</option></select><button class="btn primary block" id="refreshInputs" style="margin-top:10px">允许访问本地音频设备</button><label class="sub" for="outputDevice">播放输出设备</label><select id="outputDevice"><option value="">跟随系统默认输出</option></select><button class="back" id="requestOutput">选择并授权播放输出</button><div id="deviceAccessStatus" class="sub" role="status"></div><div class="sub" id="inputHelp"></div></div><div id="audioStatus" class="sub" role="status" style="margin-top:8px"></div>
+            <input type="file" id="fileInput" accept="audio/*" style="display:none">
+            <audio id="audioEl" crossorigin="anonymous" style="display:none"></audio>
+            <div style="display:flex;gap:10px;margin-top:12px">
+              <button class="btn primary" style="flex:1" id="playBtn">▶ 开始分析</button>
+            </div>
+          </div>
+
+
+<div class="card"><label class="card-title" for="effectSelect">律动效果</label><select id="effectSelect"><option value="0">线条</option><option value="1">粒子散发</option><option value="2">尖刺</option><option value="3" selected>raVe 原版 · 双环频谱</option></select>
+<p id="raveLockNote" class="sub" style="margin-top:12px">raVe 保留原始参数与画面。以下调节仅用于自制特效；中心宠物独立叠加。</p><div class="row" style="margin-top:14px"><label for="colorMode" class="sub">色彩模式</label><select id="colorMode" style="width:65%"><option value="rgb">RGB 循环</option><option value="fixed">固定颜色</option><option value="dynamic">低频变色</option></select></div><div id="fixedColorRow" class="row" hidden style="margin-top:12px"><label for="effectColor" class="sub">效果颜色</label><input id="effectColor" type="color" value="#5eead4" aria-label="效果颜色" style="width:56px;height:34px;border:0;background:none"></div><details style="margin-top:14px"><summary style="cursor:pointer;color:var(--accent)">详细设置 · 灵敏度与色彩</summary><p class="sub" style="margin:10px 0">参数实时应用到手机与手表。视觉增益不改变播放音量；内置效果默认更灵敏，颜色与形态可独立选择。</p><label style="display:block;margin:14px 0;font-size:12px" for="vis-gain">视觉输入增益 <output id="out-gain" for="vis-gain" style="float:right"></output><input style="display:block;width:100%;margin-top:8px;accent-color:var(--accent)" type="range" id="vis-gain" min="0.25" max="6" step="0.05"></label><label style="display:block;margin:14px 0;font-size:12px" for="vis-bass">低频起伏倍率 <output id="out-bass" for="vis-bass" style="float:right"></output><input style="display:block;width:100%;margin-top:8px;accent-color:var(--accent)" type="range" id="vis-bass" min="0" max="3" step="0.05"></label><label style="display:block;margin:14px 0;font-size:12px" for="vis-smoothing">频谱平滑 <output id="out-smoothing" for="vis-smoothing" style="float:right"></output><input style="display:block;width:100%;margin-top:8px;accent-color:var(--accent)" type="range" id="vis-smoothing" min="0" max="0.95" step="0.01"></label><label style="display:block;margin:14px 0;font-size:12px" for="vis-trail">拖影保留 <output id="out-trail" for="vis-trail" style="float:right"></output><input style="display:block;width:100%;margin-top:8px;accent-color:var(--accent)" type="range" id="vis-trail" min="0.5" max="0.99" step="0.01"></label><label style="display:block;margin:14px 0;font-size:12px" for="vis-rgb">RGB 循环速度 <output id="out-rgb" for="vis-rgb" style="float:right"></output><input style="display:block;width:100%;margin-top:8px;accent-color:var(--accent)" type="range" id="vis-rgb" min="0" max="4" step="0.1"></label><button class="btn ghost block" id="resetVisual">重置参数</button><p class="sub" style="margin-top:10px">觉得波动偏小？先将输入增益调到 1.5–2.0。低频倍率控制鼓点起伏；降低平滑会更灵敏；增大拖影保留会留下更长的彩色轨迹。</p><a href="https://github.com/ajm13/raVe" target="_blank" rel="noopener" class="sub">算法来源：ajm13 / raVe</a></details></div>
+</div></details>          <div class="quick-grid">
+            <div class="quick-card" onclick="openScreen('rhythm')">
+              <div class="ic" style="background:#312e81"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13 M9 8l11-2 M9 18a3 3 0 1 1-3-3 M20 16a3 3 0 1 1-3-3"/></svg></div>
+              <b>音乐律动</b>
+              <span>预设计特效随音乐频率变化，同步到手表屏幕</span>
+            </div>
+            <div class="quick-card" onclick="openScreen('heal')">
+              <div class="ic" style="background:#134e4a"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M14 5a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M4 4a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0"/></svg></div>
+              <b>呼吸疗愈</b>
+              <span>震动 + 灯光引导，5秒吸气 · 5秒呼气</span>
+            </div>
+            <div class="quick-card" onclick="openScreen('metronome')">
+              <div class="ic" style="background:#7c2d92"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21h12L14 3h-4L6 21 M12 17l6-9 M9 17h6"/></svg></div>
+              <b>节拍器</b>
+              <span>自选拍号、速度与震动强度</span>
+            </div>
+            <div class="quick-card" onclick="openScreen('relax')">
+              <div class="ic" style="background:#9a3412"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v16H8z M4 7v10 M20 7v10 M11 17h2"/></svg></div>
+              <b>减压震动</b>
+              <span>低频震动模式，快速平复紧张情绪</span>
+            </div>
+          </div>
+
+          <div class="device-strip" id="devStrip">
+            <div class="ring"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h8v10H8Z M9 3h6v4H9Z M9 17h6v4H9Z"/></svg></div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:600" id="devName">未连接设备</div>
+              <div style="font-size:11.5px;color:var(--sub)" id="devState">点击连接 Haptonics 手表</div>
+            </div>
+            <button class="btn ghost" style="padding:8px 14px;font-size:13px" onclick="openScreen('device')">连接</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>今日疗愈</div>
+            <div style="display:flex;justify-content:space-around;text-align:center">
+              <div><div style="font-size:22px;font-weight:700;color:var(--accent)"><span id="todayBreaths">0</span><span style="font-size:12px">次</span></div><small style="color:var(--sub)">呼吸练习</small></div>
+              <div><div style="font-size:22px;font-weight:700;color:var(--accent2)"><span id="todayRhythm">0</span><span style="font-size:12px">分钟</span></div><small style="color:var(--sub)">音乐律动时长</small></div>
+              <div><div id="recentMood" style="font-size:26px">—</div><small style="color:var(--sub)">最近心情</small></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 律动页 ============ -->
+        <section class="screen" id="scr-rhythm"><button class="back" onclick="switchTab(1)">‹ 模式</button>
+          <div class="h1">音乐律动</div>
+          <div class="sub">选择喜欢的光效，让声音变成可见的节奏</div>
+
+<div id="rhythmControls"></div>
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>实时频段（发送至手表）</div>
+            <div class="band-meters">
+              <div class="bm b1"><div class="bar-wrap"><div class="bar" id="barLow"></div></div><small>低频 · 鼓点<br>LOW · 20–250 Hz</small></div>
+              <div class="bm"><div class="bar-wrap"><div class="bar" id="barMid"></div></div><small>中频 · 人声<br>MID · 250 Hz–1 kHz</small></div>
+              <div class="bm b3"><div class="bar-wrap"><div class="bar" id="barHigh"></div></div><small>高频 · 镲片<br>HIGH · 1 kHz+</small></div>
+            </div>
+            <div class="ble-stats">
+              <div class="ble-stat"><b id="bleHz">30Hz</b><small>数据刷新率</small></div>
+              <div class="ble-stat"><b id="blePkt">0</b><small>传输未接入</small></div>
+              <div class="ble-stat"><b id="bleDelay">—</b><small>端到端延迟</small></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>特效图案（预设计）</div>
+            <div class="fx-grid" id="fxGrid"></div>
+          </div>
+
+          <div class="card">
+            <div class="row">
+              <div>
+                <div style="font-size:15px;font-weight:600">同步到手表</div>
+                <div class="sub" style="font-size:12px">关闭后仅在手机预览，不占用蓝牙带宽</div>
+              </div>
+              <div class="switch on" id="syncSw"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ 疗愈页 ============ -->
+        <section class="screen" id="scr-heal"><button class="back" onclick="switchTab(1)">‹ 模式</button>
+          <div class="h1">呼吸疗愈</div>
+          <div class="sub">震动提示吸气 · 图案同步缩放 · 引导你回到当下</div>
+
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>呼吸模式</div>
+            <div class="mode-grid" id="modeGrid">
+              <div class="mode-card sel" data-mode="55"><b>5-5 均衡</b><small>吸5秒 · 呼5秒</small></div>
+              <div class="mode-card" data-mode="478"><b>4-7-8 放松</b><small>吸4秒 · 屏7秒 · 呼8秒</small></div>
+              <div class="mode-card" data-mode="box"><b>方形呼吸</b><small>吸-屏-呼-屏 各4秒</small></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>感官通道</div>
+            <div class="row" style="padding:6px 0">
+              <div style="font-size:14px"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v16H8z M4 7v10 M20 7v10 M11 17h2"/></svg> 电机震动</div>
+              <div class="switch on" id="vibSw"></div>
+            </div>
+            <div class="row" style="padding:6px 0">
+              <div style="font-size:14px"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 15C2 7 8 2 12 3c5-1 10 5 4 12 M8 15h8v3H8z M10 21h4"/></svg> 屏幕灯光律动</div>
+              <div class="switch on" id="lightSw"></div>
+            </div>
+            <div class="phase-legend">
+              <div class="pl vib"><b>吸气阶段</b>持续轻震 · 每秒短震<br>图案向外扩散</div>
+              <div class="pl calm"><b>屏息阶段</b>每秒轻震<br>保持图案</div><div class="pl calm"><b>呼气阶段</b>低频轻震 · 每秒短震<br>图案向内收敛</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>练习设置</div>
+            <div class="row" style="padding:4px 0">
+              <span style="color:var(--sub);font-size:13px">时长</span>
+              <div style="display:flex;gap:6px">
+                <button class="btn ghost" style="padding:6px 12px;font-size:12px" data-dur="0.5">30秒</button>
+                <button class="btn ghost" style="padding:6px 12px;font-size:12px" data-dur="1">1分钟</button>
+                <button class="btn primary" style="padding:6px 12px;font-size:12px" data-dur="3">3分钟</button><button class="btn ghost" style="padding:6px 8px;font-size:12px" data-dur="custom">自定义</button>
+              </div>
+            </div>
+            <label id="customDurationRow" class="field" hidden>自定义时长（秒）<input id="customDuration" type="number" min="10" max="3600" value="90"></label><p class="sub" id="breathDurationNote">达到时长后，完成当前呼吸循环再结束。</p><div class="row" style="padding:4px 0;margin-top:6px">
+              <span style="color:var(--sub);font-size:13px">震动强度</span>
+              <div style="display:flex;gap:6px">
+                <button class="btn ghost" style="padding:6px 12px;font-size:12px" data-vib="1">轻柔</button>
+                <button class="btn primary" style="padding:6px 12px;font-size:12px" data-vib="2">标准</button>
+                <button class="btn ghost" style="padding:6px 12px;font-size:12px" data-vib="3">有力</button>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn primary block" id="breathBtn" style="margin-top:14px;padding:16px;font-size:16px">开始疗愈</button>
+          <div class="hint" style="margin-top:10px">开始后请将手表佩戴于手腕，跟随震动节奏呼吸</div>
+        </section>
+
+        <!-- ============ 设备页 ============ -->
+        <section class="screen" id="scr-device"><button class="back" onclick="openScreen(deviceReturnScreen)">‹ 返回</button>
+          <div class="h1">设备</div>
+          <div class="sub">通过 Web Bluetooth（BLE）连接带屏幕的智能手表</div>
+
+          <div class="card dev-card">
+            <div class="watch-mini"><span id="miniFace">♡</span></div>
+            <div style="flex:1">
+              <div style="font-size:16px;font-weight:700">Haptonics Watch</div>
+              <div style="font-size:12px;color:var(--sub)" id="devStatus2">BLE · GATT 服务就绪</div>
+              <div style="display:flex;gap:6px;margin-top:8px">
+                <span style="font-size:10px;background:var(--panel2);border-radius:6px;padding:3px 8px;color:var(--sub)" id="batteryTag">电量 --</span>
+                <span style="font-size:10px;background:var(--panel2);border-radius:6px;padding:3px 8px;color:var(--sub)" id="fwTag">固件 v1.0</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn primary block" id="bleBtn" style="margin-top:14px;padding:14px"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 7l3-3c5-3 10 2 7 6l-4 4 M14 17l-3 3c-5 3-10-2-7-6l4-4 M8 16l8-8"/></svg> 连接手表（Web Bluetooth）</button>
+
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>BLE 数据通道</div>
+            <div class="kv"><span class="k">频率数据通道</span><span class="v" style="color:var(--accent)">本地视觉预览</span></div>
+            <div class="kv"><span class="k">特效控制通道</span><span class="v">本地效果设置</span></div>
+            <div class="kv"><span class="k">震动控制通道</span><span class="v" style="color:var(--pink)">NUS · H0–H127</span></div>
+            <div class="kv"><span class="k">呼吸节奏通道</span><span class="v">本地节奏预览</span></div>
+            <div class="kv"><span class="k">MTU / 吞吐</span><span class="v">按连接能力协商</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span class="dot"></span>其他设置</div>
+            <div class="row" style="padding:8px 0"><span style="font-size:14px">息屏时保持震动引导</span><div class="switch on"></div></div>
+            <div class="row" style="padding:8px 0"><span style="font-size:14px">夜间自动降低亮度</span><div class="switch on"></div></div>
+            <div class="row" style="padding:8px 0"><span style="font-size:14px">低电量暂停特效同步</span><div class="switch"></div></div>
+          </div>
+        </section>
+
+
+<section class="screen" id="scr-modes"><div class="h1">模式</div><div class="sub">找到此刻适合你的节奏</div>
+<div class="quick-grid">
+<button class="quick-card" onclick="openScreen('rhythm')"><div class="ic" style="background:#312e81"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V5l11-2v13 M9 8l11-2 M9 18a3 3 0 1 1-3-3 M20 16a3 3 0 1 1-3-3"/></svg></div><b>音乐律动</b><span>频谱与波形，跟随声音展开</span></button>
+<button class="quick-card" onclick="openScreen('heal')"><div class="ic" style="background:#134e4a"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M14 5a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M4 4a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0"/></svg></div><b>呼吸疗愈</b><span>慢慢呼吸，回到当下</span></button>
+<button class="quick-card" onclick="openScreen('metronome')"><div class="ic" style="background:#493b90"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21h12L14 3h-4L6 21 M12 17l6-9 M9 17h6"/></svg></div><b>节拍器</b><span>拍号、BPM 与触觉节奏</span></button><button class="quick-card" onclick="openScreen('relax')"><div class="ic" style="background:#59376d"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v16H8z M4 7v10 M20 7v10 M11 17h2"/></svg></div><b>减压震动</b><span>缓慢、有规律的轻柔脉冲</span></button></div><button class="card diary-entry" onclick="openScreen('diary')"><span style="font-size:28px"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v16H4z M8 3v4 M16 3v4 M4 10h16 M8 14h2 M14 14h2 M8 18h2"/></svg></span><div><b>疗愈日记</b><div class="sub">在日历上，留下一枚心情</div></div><span>↗</span></button></section>
+<section class="screen" id="scr-metronome"><button class="back" onclick="switchTab(1)">‹ 模式</button><div class="h1">节拍器</div><p class="sub">看见节拍，也感受节拍。BPM 以四分音符计。</p><div class="card"><div class="beat-display" id="beatDisplay">准备开始</div><label class="sub">拍号</label><div class="row"><select id="meterTop" aria-label="每小节拍数"><option >1</option><option >2</option><option >3</option><option selected>4</option><option >5</option><option >6</option><option >7</option><option >8</option><option >9</option><option >10</option><option >11</option><option >12</option></select><span>/</span><select id="meterBottom" aria-label="拍子单位"><option>2</option><option selected>4</option><option>8</option><option>16</option></select></div><label class="field">速度 BPM<input id="metroBpm" type="number" min="30" max="240" value="120"></label><label class="field">震动强度 <output id="metroStrengthValue">60%</output><input id="metroStrength" type="range" min="0" max="100" value="60"></label><button class="btn primary block" id="metroStart">开始节拍</button></div><p class="sub haptic-note">视觉与震动同步。浏览器支持时提供手机震动；连接兼容的手表后发送强度指令。电脑自身通常不能震动。</p><button class="back" onclick="openScreen('device')">连接震动设备 ›</button></section>
+<section class="screen" id="scr-relax"><button class="back" onclick="switchTab(1)">‹ 模式</button><div class="h1">减压震动</div><p class="sub">把注意力放在缓慢起伏的节奏上。</p><div class="card"><label class="field">脉冲间隔（秒）<input id="relaxPeriod" type="range" min="1" max="8" value="3"><output id="relaxPeriodValue">3 秒</output></label><label class="field">震动强度<input id="relaxStrength" type="range" min="0" max="100" value="30"><output id="relaxStrengthValue">30%</output></label><label class="field">时长（分钟）<select id="relaxDuration"><option>1</option><option selected>3</option><option>5</option><option>10</option></select></label><button class="btn primary block" id="relaxStart">开始放松</button><p id="relaxStatus" class="sub" role="status">尚未开始</p></div><p class="sub haptic-note">可在右侧查看脉冲效果。实际震动需兼容设备，随时可停止。</p><button class="back" onclick="openScreen('device')">连接震动设备 ›</button></section>
+<section class="screen" id="scr-diary"><button class="back" onclick="switchTab(1)">‹ 模式</button><div class="h1">疗愈日记</div><div class="sub">不必写很多，记录这一刻就好。</div>
+<div class="card"><div class="row"><button class="btn ghost" id="prevMonth" aria-label="上个月">‹</button><b id="calendarTitle"></b><button class="btn ghost" id="nextMonth" aria-label="下个月">›</button></div><div class="calendar weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div><div class="calendar" id="calendar"></div></div>
+<div class="card"><div class="row"><b id="selectedDate"></b><button class="back" id="clearMood">清除记录</button></div><div class="mood-chips"><button class="mood" data-mood="😌" aria-label="平静"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M6 9q2 2 4 0 M14 9q2 2 4 0 M8 15q4 4 8 0"/></svg></button><button class="mood" data-mood="😐" aria-label="一般"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M7 9h2 M15 9h2 M8 16h8"/></svg></button><button class="mood" data-mood="😔" aria-label="低落"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M6 10l4-1 M14 9l4 1 M8 17q4-4 8 0"/></svg></button><button class="mood" data-mood="😫" aria-label="疲惫"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M6 8l4 2-4 2 M18 8l-4 2 4 2 M8 17q4-5 8 0"/></svg></button></div><p class="sub" id="moodStatus" role="status" style="margin-top:12px">选择日期，再轻点心情</p></div></section>
+<section class="screen" id="scr-settings"><button class="back" onclick="switchTab(4)">‹ 我的</button><div class="h1">设置</div><div class="card"><b>外观</b><label class="field">显示模式<select id="themeMode"><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label><label class="field">主题色<input id="themeColor" type="color" value="#7150c8"></label><label class="field">文字大小<select id="textSize"><option value="1">标准</option><option value="1.12">较大</option></select></label></div><div class="card"><b>播放与体验</b><label class="field"><input id="allowHaptics" type="checkbox" checked> 允许震动反馈</label><label class="field"><input id="reduceMotion" type="checkbox"> 减弱自制特效动态</label><label class="field">动画流畅度<select id="frameRate"><option value="120">精致 · 120 帧</option><option value="60">流畅 · 60 帧上限</option><option value="30">省电 · 30 帧上限</option></select></label><button class="btn ghost block" id="resetSettings">恢复设置</button></div><div class="card"><b>隐私与存储</b><p class="sub">主题、宠物与心情记录保存在此浏览器。音频只在本机处理，不上传。</p></div></section><section class="screen" id="scr-shop"><div class="h1">商城</div><p class="sub">为每一首歌，挑选不同的视觉表达。</p><div class="card"><b>特效区</b><p class="sub">自制特效可调整颜色与灵敏度；raVe 保留原始效果。</p><button class="shop-effect" onclick="selectEffect(0);openScreen('rhythm')"><span>◯</span><div><b>线条</b><small>流动轮廓与波形拖影</small></div><span>试用 ›</span></button><button class="shop-effect" onclick="selectEffect(1);openScreen('rhythm')"><span>✺</span><div><b>粒子散发</b><small>随节奏散开的光点</small></div><span>试用 ›</span></button><button class="shop-effect" onclick="selectEffect(2);openScreen('rhythm')"><span>✷</span><div><b>尖刺</b><small>有棱角的放射频谱</small></div><span>试用 ›</span></button><button class="shop-effect" onclick="selectEffect(3);openScreen('rhythm')"><span>◎</span><div><b>raVe</b><small>双环与彩色扩散</small></div><span>试用 ›</span></button></div><div class="card"><b>宠物区</b><p class="sub">选择圆环中心的宠物轮廓，手机与手表同步显示。仅用于自制特效。</p><div id="petGrid"></div><p id="petStatus" role="status" class="sub" style="margin-top:12px"></p></div><div class="card"><b>更多视觉特效包</b><p class="sub" style="margin-top:8px">后续上架独立特效与主题组合。</p><span class="tag">购买功能筹备中</span></div></section>
+<section class="screen" id="scr-community"><div class="h1">社区</div><div class="sub">在相似的节奏里，遇见彼此</div><div class="card"><div style="font-size:36px;margin-bottom:14px">◎</div><div class="card-title">你的声音，值得被听见</div><p class="sub">未来可以在这里分享律动灵感、音乐和练习感受。</p><div class="tag">社区即将开放</div><p class="sub">目前尚未接入发布或互动服务。</p></div><button class="btn primary block" style="margin-top:16px" onclick="openScreen('diary')">先记录今天的心情</button></section>
+<section class="screen" id="scr-mine"><div class="h1">我的</div><div class="sub">个性化你的体验</div><div class="card row"><span style="font-size:36px"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M8 8a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M6 19c0-6 12-6 12 0"/></svg></span><div style="flex:1"><b>Haptonics 体验者</b><div class="sub">本地体验 · 无需登录</div></div></div><button class="card diary-entry" onclick="openScreen('device')"><span><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h8v10H8Z M9 3h6v4H9Z M9 17h6v4H9Z"/></svg></span><b>我的设备</b><span>›</span></button><button class="card diary-entry" onclick="openScreen('diary')"><span><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v16H4z M8 3v4 M16 3v4 M4 10h16 M8 14h2 M14 14h2 M8 18h2"/></svg></span><b>疗愈日记</b><span>›</span></button><button class="card diary-entry" onclick="openScreen('settings')"><span><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M19 5l-2 2 M7 17l-2 2"/></svg></span><b>设置</b><span>›</span></button><div class="card"><b>关于 Haptonics</b><p class="sub" style="margin-top:8px">用声音、光与触觉，探索自己的节奏。</p></div></section>
+      </div>
+
+<nav class="tabbar" aria-label="主导航"><button class="tab active" data-tab="0" onclick="switchTab(0)"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg>主页</button><button class="tab " data-tab="1" onclick="switchTab(1)"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16"/><circle cx="8" cy="7" r="3"/><circle cx="16" cy="17" r="3"/></svg>模式</button><button class="tab " data-tab="2" onclick="switchTab(2)"><svg viewBox="0 0 24 24"><path d="M4 8h16l-1 13H5zM8 8V6a4 4 0 0 1 8 0v2"/></svg>商城</button><button class="tab " data-tab="3" onclick="switchTab(3)"><svg viewBox="0 0 24 24"><path d="M4 4h16v13H9l-5 4z"/><path d="M8 9h8M8 13h5"/></svg>社区</button><button class="tab " data-tab="4" onclick="switchTab(4)"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg>我的</button></nav>
+    </div>
+  </div>
+
+  <!-- ==================== 手表模拟器 ==================== -->
+  <div class="rig">
+    <div class="rig-title">WATCH · 实时预览（手表端渲染效果）</div>
+    <div class="watch-device">
+      <div class="strap"></div>
+      <div class="watch-shell">
+
+        <div class="watch-canvas-wrap"><canvas id="watchCanvas"></canvas></div>
+      </div>
+      <div class="strap bottom"></div>
+    </div>
+    <div class="vibe-meter">
+      <div class="track"><div class="fill" id="vibeFill"></div></div>
+      <div class="labels"><span>振动电机</span><span id="vibeState">待机</span></div>
+    </div>
+    <div class="rig-stats"><div>LOW · 20–250 Hz<br>MID · 250 Hz–1 kHz<br>HIGH · 1 kHz+</div>
+      <div>当前模式 <b id="wsMode">表盘待机</b></div>
+      <figure style="margin:10px 0"><canvas id="miniSpectrum" width="448" height="210" style="width:100%;height:105px" aria-label="实时频谱：横轴频率，纵轴相对电平 −12 至 +12 dB，0 为近期频谱平均功率"></canvas><figcaption id="spectrumCaption" class="sub" style="font-size:10px">实时频谱 · 频率 / 相对音量</figcaption></figure>
+      <div>特效 <b id="wsFx">raVe 原版</b></div>
+    </div>
+  </div>
+
+  <!-- ==================== 架构图 ==================== -->
+  <div class="arch">
+    <svg viewBox="0 0 1100 150" xmlns="http://www.w3.org/2000/svg" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+      <defs>
+        <linearGradient id="ag1" x1="0" x2="1"><stop offset="0" stop-color="#5eead4"/><stop offset="1" stop-color="#818cf8"/></linearGradient>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#5eead4"/></marker>
+      </defs>
+      <rect x="20" y="30" width="240" height="90" rx="14" fill="#1a2132" stroke="#2a3350"/>
+      <text x="140" y="60" fill="#e8ecf5" font-size="15" font-weight="700" text-anchor="middle"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h10v20H7z M10 18h4"/></svg> 手机 Web App</text>
+      <text x="140" y="82" fill="#8a93ad" font-size="11.5" text-anchor="middle">音频采集 + Web Audio 频率分析</text>
+      <text x="140" y="100" fill="#8a93ad" font-size="11.5" text-anchor="middle">模式控制 / 特效选择 / 疗愈参数</text>
+
+      <line x1="270" y1="75" x2="420" y2="75" stroke="url(#ag1)" stroke-width="2.5" marker-end="url(#arr)"/>
+      <text x="345" y="55" fill="#5eead4" font-size="11.5" text-anchor="middle">BLE 蓝牙传输</text>
+      <text x="345" y="98" fill="#8a93ad" font-size="10.5" text-anchor="middle">频段数据 30Hz · 控制指令</text>
+
+      <rect x="425" y="30" width="240" height="90" rx="14" fill="#1a2132" stroke="#2a3350"/>
+      <text x="545" y="60" fill="#e8ecf5" font-size="15" font-weight="700" text-anchor="middle"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h8v10H8Z M9 3h6v4H9Z M9 17h6v4H9Z"/></svg> 智能手表</text>
+      <text x="545" y="82" fill="#8a93ad" font-size="11.5" text-anchor="middle">① 律动特效渲染（预设计图案）</text>
+      <text x="545" y="100" fill="#8a93ad" font-size="11.5" text-anchor="middle">② 情感疗愈：灯光律动 + 电机震动</text>
+
+      <line x1="675" y1="75" x2="830" y2="75" stroke="url(#ag1)" stroke-width="2.5" marker-end="url(#arr)"/>
+      <text x="752" y="55" fill="#5eead4" font-size="11.5" text-anchor="middle">佩戴者体验</text>
+      <text x="752" y="98" fill="#8a93ad" font-size="10.5" text-anchor="middle">视觉 + 触觉双通道反馈</text>
+
+      <rect x="835" y="30" width="240" height="90" rx="14" fill="#132c33" stroke="#2a3350"/>
+      <text x="955" y="60" fill="#e8ecf5" font-size="15" font-weight="700" text-anchor="middle"><svg class="line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 14a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M14 5a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M4 4a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0"/></svg> 疗愈效果</text>
+      <text x="955" y="82" fill="#8a93ad" font-size="11.5" text-anchor="middle">呼吸调节 · 情绪舒缓 · 压力释放</text>
+      <text x="955" y="100" fill="#8a93ad" font-size="11.5" text-anchor="middle">5秒震动吸气 → 5秒静止呼气</text>
+    </svg>
+    <div class="hint">原型说明：右侧手表模拟器实时演示手表端的特效与震动节奏 · 律动页选择「演示节奏」无需麦克风即可看到效果 · 真机上通过 Web Bluetooth API（navigator.bluetooth）连接 BLE 手表</div>
+  </div>
+</div>
+
+<script src="shepherd.js?v=rave-bass-6"></script>
+<script>
+/* ================================================================
+   Haptonics · 前端交互原型
+   手机端：音频分析 + BLE 控制   |   手表端：特效渲染 + 震动
+   ================================================================ */
+
+const settingsDefaults={themeMode:'dark',themeColor:'#7150c8',textSize:'1',allowHaptics:true,reduceMotion:false,frameRate:60};
+let appSettings={...settingsDefaults};try{const saved=JSON.parse(localStorage.getItem('musex-settings')||'{}');for(const k of Object.keys(settingsDefaults))if(typeof saved[k]===typeof settingsDefaults[k])appSettings[k]=saved[k];}catch(e){}
+const systemTheme=window.matchMedia?.('(prefers-color-scheme: dark)');
+function applyAppSettings(){
+ const light=appSettings.themeMode==='light'||(appSettings.themeMode==='system'&&!systemTheme?.matches),hex=/^#[0-9a-f]{6}$/i.test(appSettings.themeColor)?appSettings.themeColor:'#7150c8';
+ const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255,max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;let h=265;if(d)h=60*(max===r?((g-b)/d+6)%6:max===g?(b-r)/d+2:(r-g)/d+4);
+ const vars=light?{bg:`hsl(${h},30%,97%)`,panel:`hsl(${h},30%,94%)`,panel2:`hsl(${h},28%,91%)`,card:`hsl(${h},28%,95%)`,line:`hsl(${h},20%,78%)`,txt:`hsl(${h},35%,14%)`,sub:`hsl(${h},18%,38%)`,accent:`hsl(${h},60%,40%)`,accent2:`hsl(${h+25},60%,44%)`,pink:`hsl(${h+45},55%,42%)`}:{bg:`hsl(${h},40%,7%)`,panel:`hsl(${h},32%,11%)`,panel2:`hsl(${h},28%,17%)`,card:`hsl(${h},30%,13%)`,line:`hsl(${h},25%,29%)`,txt:`hsl(${h},25%,94%)`,sub:`hsl(${h},18%,73%)`,accent:`hsl(${h},80%,77%)`,accent2:`hsl(${h+25},80%,72%)`,pink:`hsl(${h+45},75%,76%)`};
+ applyAppSettings.palette={ink:vars.sub,accent:vars.accent};
+ for(const [k,v]of Object.entries(vars))document.documentElement.style.setProperty('--'+k,v);document.documentElement.style.setProperty('--text-scale',appSettings.textSize==='1.12'?'1.25':'1');document.documentElement.dataset.theme=light?'light':'dark';
+ for(const k of Object.keys(settingsDefaults)){const el=document.getElementById(k);if(el.type==='checkbox')el.checked=appSettings[k];else el.value=appSettings[k];}
+ try{localStorage.setItem('musex-settings',JSON.stringify(appSettings));}catch(e){}
+}
+for(const k of Object.keys(settingsDefaults))document.getElementById(k).onchange=e=>{appSettings[k]=e.target.type==='checkbox'?e.target.checked:k==='frameRate'?Number(e.target.value):e.target.value;applyAppSettings();if(k==='allowHaptics'&&!appSettings[k]){stopTimed();if(S.breath.running)stopBreathing();}};
+document.getElementById('resetSettings').onclick=()=>{appSettings={...settingsDefaults};applyAppSettings();};systemTheme?.addEventListener?.('change',()=>{if(appSettings.themeMode==='system')applyAppSettings();});applyAppSettings();
+document.getElementById('homeControls').ontoggle=e=>document.getElementById('disclosureLabel').textContent=e.target.open?'收起 ▴':'展开 ▾';
+document.getElementById('customDuration').onchange=e=>{if(!S.breath.running)S.breath.dur=Math.max(10,Math.min(3600,Number(e.target.value)||90));};
+
+const iconPaths={"🎵": "M9 18V5l11-2v13 M9 8l11-2 M9 18a3 3 0 1 1-3-3 M20 16a3 3 0 1 1-3-3", "🎼": "M6 21h12L14 3h-4L6 21 M12 17l6-9 M9 17h6", "🧘": "M4 14a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M14 5a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M4 4a1.5 1.5 0 1 0 3 0a1.5 1.5 0 1 0-3 0", "📳": "M8 4h8v16H8z M4 7v10 M20 7v10 M11 17h2", "⌚": "M8 7h8v10H8Z M9 3h6v4H9Z M9 17h6v4H9Z", "🗓️": "M4 5h16v16H4z M8 3v4 M16 3v4 M4 10h16 M8 14h2 M14 14h2 M8 18h2", "💡": "M8 15C2 7 8 2 12 3c5-1 10 5 4 12 M8 15h8v3H8z M10 21h4", "✨": "M12 2l3 7 7 3-7 3-3 7-3-7-7-3 7-3z", "⚙": "M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8 M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M19 5l-2 2 M7 17l-2 2", "◉": "M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M8 8a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M6 19c0-6 12-6 12 0", "😌": "M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M6 9q2 2 4 0 M14 9q2 2 4 0 M8 15q4 4 8 0", "😐": "M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M7 9h2 M15 9h2 M8 16h8", "😔": "M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M6 10l4-1 M14 9l4 1 M8 17q4-4 8 0", "😫": "M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M6 8l4 2-4 2 M18 8l-4 2 4 2 M8 17q4-5 8 0", "📱": "M7 2h10v20H7z M10 18h4", "🔗": "M10 7l3-3c5-3 10 2 7 6l-4 4 M14 17l-3 3c-5 3-10-2-7-6l4-4 M8 16l8-8"};
+function oldMoodIcon(mood){return iconPaths[mood]?`<svg class="line-icon" viewBox="0 0 24 24" aria-label="${moodNames[mood]||'心情'}"><path d="${iconPaths[mood]}"/></svg>`:'—';}
+function validMood(v){return typeof v==='string'&&v.length<=24&&/^[\p{Extended_Pictographic}\p{Emoji_Modifier}\uFE0F\u200D]+$/u.test(v);}
+function moodIcon(mood){return validMood(mood)?`<span class="native-emoji">${mood}</span>`:'—';}
+const moodNames={"😌":"平静","😐":"一般","😔":"低落","😫":"疲惫"};
+
+// ---------- 全局状态 ----------
+const S = {
+  tab: 0,
+  audioSrc: 'system',          // demo | file | mic | blackhole
+  playing: false,
+  effect: 2,                 // 0涟漪 1星云 2脉格
+  bands: {low:0, mid:0, high:0},
+  syncToWatch: true,
+  bleConnected: false,
+  blePackets: 0,
+  watchMode: 'idle',          // idle | rhythm | breathing
+  breath: {running:false, mode:'55', start:0, tIn:5, tHold:0, tOut:5, dur:3*60, vib:2, elapsed:0},
+  vibOn: false, lightOn: true,
+};
+
+const FX_NAMES = ['线条', '粒子散发', '尖刺', 'raVe 原版'];
+
+// ---------- Tab 切换 ----------
+let deviceReturnScreen='home';
+let audioReturnScreen='home',designReturnScreen='home';
+const tabs = ['home','modes','shop','community','mine'];
+function switchTab(i){ openScreen(tabs[i]); }
+function openScreen(name){
+  if(name==='device'){const current=document.querySelector('.screen.active');if(current&&current.id!=='scr-device')deviceReturnScreen=current.id.slice(4);}
+  const preview=document.getElementById('sharedWatchPreview');if(preview){const anchor=document.getElementById(name==='watch-design'?'designPreviewSlot':'homePreviewSlot');anchor.after(preview);}
+  const controls=document.getElementById('audioControls');
+  if(!['audio-source','watch-design'].includes(name))(name==='rhythm'?document.getElementById('rhythmControls'):document.getElementById('homeControlHost')).appendChild(controls);
+
+  const parent = {'watch-design':designReturnScreen==='rhythm'?1:0,'audio-source':audioReturnScreen==='rhythm'?1:0,effects:2,pets:2,rhythm:1,heal:1,diary:1,metronome:1,relax:1,settings:4,device:4};
+  S.tab = parent[name] ?? tabs.indexOf(name);
+  document.querySelectorAll('.tab').forEach((el,i)=>{el.classList.toggle('active',i===S.tab);el.setAttribute('aria-current',i===S.tab?'page':'false');});
+  document.querySelectorAll('.screen').forEach(el=>{const active=el.id==='scr-'+name;el.classList.toggle('active',active);el.inert=!active;});
+}
+// A local date key avoids UTC date shifts near midnight.
+const dateKey=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+// Local daily counters start at zero. Only completed breathing sessions count.
+let usage={};try{const saved=JSON.parse(localStorage.getItem('musex-usage')||'{}');if(saved&&typeof saved==='object'&&!Array.isArray(saved))for(const [day,row]of Object.entries(saved)){if(/^\d{4}-\d{2}-\d{2}$/.test(day)&&row&&Number.isFinite(row.breaths)&&Number.isFinite(row.rhythmMs))usage[day]={breaths:Math.max(0,Math.floor(row.breaths)),rhythmMs:Math.max(0,row.rhythmMs)};}}catch(e){}
+let usageCheckpoint=Date.now(),usageLastSaved=Date.now();
+function persistUsage(){try{localStorage.setItem('musex-usage',JSON.stringify(usage));}catch(e){}usageLastSaved=Date.now();}
+function renderUsage(){const row=usage[dateKey(new Date())]||{breaths:0,rhythmMs:0};document.getElementById('todayBreaths').textContent=String(row.breaths);document.getElementById('todayRhythm').textContent=String(Math.floor(row.rhythmMs/6000)/10);}
+function recordUsage(){const now=Date.now();if(S.playing&&appSettings.allowHaptics&&S.syncToWatch&&motion.rms>.002&&motion.envelope>.05&&now>usageCheckpoint){let from=Math.max(usageCheckpoint,now-100);while(from<now){const d=new Date(from),next=new Date(d.getFullYear(),d.getMonth(),d.getDate()+1).getTime(),end=Math.min(now,next),key=dateKey(d);const row=usage[key]||(usage[key]={breaths:0,rhythmMs:0});row.rhythmMs+=end-from;from=end;}}usageCheckpoint=now;if(now-usageLastSaved>=5000){persistUsage();renderUsage();}}
+window.addEventListener('pagehide',()=>{recordUsage();persistUsage();});
+renderUsage();
+
+let selectedDay=dateKey(new Date()), calendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1), moods={};
+try { moods=JSON.parse(localStorage.getItem('musex-moods')||'{}')||{}; if(typeof moods!=='object'||Array.isArray(moods)) moods={}; } catch(e){}
+const moodValues=['😌','😐','😔','😫'];
+function renderCalendar(){
+  const y=calendarMonth.getFullYear(), m=calendarMonth.getMonth(), grid=document.getElementById('calendar');
+  document.getElementById('calendarTitle').textContent=`${y}年 ${m+1}月`;
+  grid.replaceChildren();
+  for(let i=0;i<(new Date(y,m,1).getDay()+6)%7;i++) grid.appendChild(document.createElement('span'));
+  for(let day=1;day<=new Date(y,m+1,0).getDate();day++){
+    const key=dateKey(new Date(y,m,day)), btn=document.createElement('button');
+    btn.className='day'+(key===selectedDay?' selected':'')+(key===dateKey(new Date())?' today':'');
+    const mood=validMood(moods[key])?moods[key]:'';
+    btn.innerHTML=day+(mood?' '+moodIcon(mood):''); btn.setAttribute('aria-label',key+(mood?' '+mood:'')); btn.setAttribute('aria-pressed',String(key===selectedDay));
+    btn.disabled=key>dateKey(new Date());btn.onclick=()=>{selectedDay=key;renderCalendar();};grid.appendChild(btn);
+  }
+  document.getElementById('selectedDate').textContent=selectedDay;
+  document.querySelectorAll('.mood').forEach(btn=>{const day=btn.closest('.today-mood')?dateKey(new Date()):selectedDay;btn.classList.toggle('sel',moods[day]===btn.dataset.mood);btn.setAttribute('aria-pressed',String(moods[day]===btn.dataset.mood));});
+}
+function saveMood(value){
+  if(value&&!validMood(value))return;
+  if(value===moods[selectedDay])value=null;
+  if(value) moods[selectedDay]=value;else delete moods[selectedDay];
+  try {localStorage.setItem('musex-moods',JSON.stringify(moods));document.getElementById('moodStatus').textContent=value?'已记录 · '+selectedDay+' '+(moodNames[value]||value):'已清除此日记录';}
+  catch(e){document.getElementById('moodStatus').textContent='浏览器不允许保存，记录仅在本次打开期间保留。';}
+  renderCalendar();updateRecentMood();
+}
+document.querySelectorAll('.mood').forEach(btn=>btn.onclick=()=>saveMood(btn.dataset.mood));
+document.getElementById('clearMood').onclick=()=>saveMood(null);
+document.getElementById('prevMonth').onclick=()=>{calendarMonth.setMonth(calendarMonth.getMonth()-1);renderCalendar();};
+document.getElementById('nextMonth').onclick=()=>{calendarMonth.setMonth(calendarMonth.getMonth()+1);renderCalendar();};
+function updateRecentMood(){
+  const today=new Date(),counts={},latest={};
+  for(let i=6;i>=0;i--){const d=new Date(today.getFullYear(),today.getMonth(),today.getDate()-i),m=moods[dateKey(d)];if(validMood(m)){counts[m]=(counts[m]||0)+1;latest[m]=6-i;}}
+  const most=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]||latest[b]-latest[a])[0];
+  const el=document.getElementById('recentMood');el.innerHTML=most?moodIcon(most):'—';el.title=most?'最近七天最常记录的心情；并列时取最近记录':'最近七天暂无心情记录';
+}
+renderCalendar();updateRecentMood();openScreen('home');
+
+// ---------- 音频分析（Web Audio API） ----------
+let audioCtx=null, analyser=null, freqData=null, srcNode=null, micStream=null, mediaSrc=null,micGain=null;
+const audioEl = document.getElementById('audioEl');
+
+
+// Port of ajm13/raVe src/js/raVe.js, upstream master retrieved 2026-09-27.
+// Drawing equations below retained; Vue lifecycle replaced by a shared offscreen canvas.
+const utils = {
+  debounce(fn, ms = 300) {
+    let id = 0
+    return () => {
+      clearTimeout(id)
+      id = setTimeout(fn, ms)
+    }
+  },
+
+  time(fn) {
+    let s = Date.now()
+    fn()
+    return Date.now() - s
+  },
+
+  average(data, start, end, f) {
+    start = start || 0
+    end = end || data.length
+    let avg = 0
+
+    for (let i = start; i < end; i++) {
+      avg += f ? f(data[i]) : data[i]
+    }
+
+    avg /= end - start
+    return avg
+  },
+
+  clamp(x, min, max) {
+    return Math.max(min, Math.min(max, x))
+  },
+
+  lerp(a, b, n) {
+    return n * (b - a) + a
+  },
+
+  max(data, f) {
+    let l = data.length
+    let m = -Infinity
+
+    for (let i = 0; i < l; i++) {
+      let d = f ? f(data[i]) : data[i]
+      if (d > m) m = d
+    }
+
+    return m
+  },
+
+  getMaxes(data, n, start, end, f) {
+    start = start || 0
+    end = end || data.length
+    let maxes = []
+
+    for (let i = start; i < end; i++) {
+      let v = f ? f(data[i]) : data[i]
+
+      if (maxes.length < n || v > maxes[n - 1][1]) {
+        if (maxes.length == n) maxes.pop()
+
+        maxes.push([i, v])
+        maxes.sort((a, b) => b[1] - a[1])
+      }
+    }
+
+    return maxes
+  },
+
+  dist(x1, y1, x2, y2) {
+    let dx = x2 - x1
+    let dy = y2 - y1
+    return Math.sqrt(dx * dx + dy * dy)
+  }
+}
+
+let { abs, cos, floor, max, sin, PI } = Math
+let tau = 2 * PI
+
+function poly(n = 0, a = 0, r = 1) {
+  if (n !== 0) {
+    let pin = PI / n
+    r *= cos(pin) / cos(((a + 0.5 * PI) % (2 * pin)) - pin)
+  }
+  return { x: r * cos(a), y: r * sin(a) }
+}
+
+
+const RAVE_DEFAULTS=Object.freeze({gain:1,bass:1,smoothing:.2,trail:.95,rgb:1});
+const visualDefaults=RAVE_DEFAULTS;
+const builtinDefaults={gain:2,bass:1.25,smoothing:.15,trail:.85,rgb:1};
+const visualSettings={...builtinDefaults};
+const effectProfiles={rave:{...visualDefaults},builtin:{...builtinDefaults}};
+const backgroundSettings={mode:'fixed',hex:'#000000',brightness:1,image:null,url:null,asset:'plain'};
+const effectColors={mode:'rgb',hex:'#5eead4',palette:['#000000','#ffffff'],backgrounds:['#ffffff','#000000'],dynamic:'#000000',anyRGB:false,lastBeat:-Infinity};
+function advanceBeatColor(time,beat){
+  if(S.effect===3||effectColors.mode!=='dynamic')return;
+  effectColors.lastBeat=time;
+  const choices=effectColors.palette.filter(color=>color.toLowerCase()!==effectColors.dynamic.toLowerCase());
+  if(effectColors.anyRGB){const previous=parseInt(effectColors.dynamic.slice(1),16);const next=(previous+1+Math.floor(Math.random()*0xffffff))%0x1000000;effectColors.dynamic='#'+next.toString(16).padStart(6,'0');}
+  else if(choices.length)effectColors.dynamic=choices[Math.floor(Math.random()*choices.length)];
+}
+
+function drawCustomBackground(c,W,H,t){
+ const size=Math.min(W,H);c.save();c.beginPath();c.arc(W/2,H/2,size/2,0,Math.PI*2);c.clip();
+ const index=effectColors.palette.indexOf(effectColors.dynamic);
+ const paired=effectColors.mode==='dynamic'&&!effectColors.anyRGB&&index>=0;
+ const background=paired?effectColors.backgrounds[index]:backgroundSettings.mode==='rgb'?`hsl(${t*18%360},65%,40%)`:backgroundSettings.hex;c.fillStyle=background;c.fillRect(0,0,W,H);
+ const img=backgroundSettings.image;if(!paired&&backgroundSettings.mode==='image'&&img){const scale=Math.max(W/img.naturalWidth,H/img.naturalHeight);c.drawImage(img,(W-img.naturalWidth*scale)/2,(H-img.naturalHeight*scale)/2,img.naturalWidth*scale,img.naturalHeight*scale);}
+ if(backgroundSettings.asset==='meteors'){const rgb=/^#[0-9a-f]{6}$/i.test(background)?parseInt(background.slice(1),16):0;const light=((rgb>>16)*.2126+((rgb>>8)&255)*.7152+(rgb&255)*.0722)*backgroundSettings.brightness>128;Shepherd.drawMeteors(c,(W-size)/2,(H-size)/2,size,size,light);}
+ c.fillStyle=`rgba(0,0,0,${1-backgroundSettings.brightness})`;c.fillRect(0,0,W,H);c.restore();
+}
+function effectColor(t,alpha=1){
+  if(['fixed','dynamic'].includes(effectColors.mode)){const n=parseInt((effectColors.mode==='dynamic'?effectColors.dynamic:effectColors.hex).slice(1),16);return `rgba(${n>>16},${(n>>8)&255},${n&255},${alpha})`;}
+  return `hsla(${(175+t*6*visualSettings.rgb)%360},90%,68%,${alpha})`;
+}
+function updateColorControls(){const dynamic=document.getElementById('dynamicColors');if(dynamic)dynamic.hidden=effectColors.mode!=='dynamic'||S.effect===3;document.getElementById('fixedColorRow').hidden=effectColors.mode!=='fixed'||S.effect===3;document.getElementById('vis-rgb').disabled=effectColors.mode!=='rgb'||S.effect===3;document.getElementById('vis-rgb').parentElement.hidden=effectColors.mode!=='rgb'||S.effect===3;}
+document.getElementById('colorMode').onchange=e=>{effectColors.mode=e.target.value;updateColorControls();raveRenderer.reset();};
+document.getElementById('effectColor').oninput=e=>{effectColors.hex=e.target.value;raveRenderer.reset();};
+
+let raveInput=null,raveAnalyser=null,raveBassAnalyser=null;
+const raveData=[{time:new Uint8Array(2048),freq:new Uint8Array(1024)},{time:new Float32Array(2048)}];
+function ensureRaveAudio(){
+  if(raveInput)return;
+  raveInput=audioCtx.createGain();raveInput.gain.value=RAVE_DEFAULTS.gain;
+  const full=audioCtx.createBiquadFilter();full.type='lowpass';full.frequency.value=5000;
+  const bass=audioCtx.createBiquadFilter();bass.type='lowpass';bass.frequency.value=100;
+  raveAnalyser=audioCtx.createAnalyser();raveAnalyser.fftSize=2048;raveAnalyser.smoothingTimeConstant=RAVE_DEFAULTS.smoothing;raveAnalyser.minDecibels=-70;raveAnalyser.maxDecibels=-30;
+  raveBassAnalyser=audioCtx.createAnalyser();raveBassAnalyser.fftSize=2048;
+  raveInput.connect(full);full.connect(raveAnalyser);raveInput.connect(bass);bass.connect(raveBassAnalyser);
+}
+function connectRaveAudio(source){ensureRaveAudio();source.connect(raveInput);}
+class RaveOriginal {
+  constructor(){
+    this.canvas=document.createElement('canvas');this.buffer=document.createElement('canvas');
+    this.canvas.width=this.canvas.height=this.buffer.width=this.buffer.height=600;
+    this.ctx=this.canvas.getContext('2d');this.buf=this.buffer.getContext('2d');this.r1=30;this.r2=120;this.speed=1;this.tick=0;this.lastTime=null;this.bassbuf=Array(15).fill(0);this.bassMul=1;this.bassSpike=false;
+  }
+  reset(){this.ctx.clearRect(0,0,600,600);this.buf.clearRect(0,0,600,600);this.lastTime=null;this.tick=0;this.bassbuf.fill(0);}
+  getPolyPoint(a, r, q) {
+    let s0 = poly(0, a, r)
+    let s1 = poly(6, a, 1.25 * r)
+    return {
+      x: utils.lerp(s0.x, s1.x, q),
+      y: utils.lerp(s0.y, s1.y, q)
+    }
+  }
+
+  drawInner(ctx, data, bass, white) {
+    let R = this.r1
+    let h = 0.15 * this.r1
+    let l = floor(data[0].time.length / 3)
+
+    let d128 = 1 / 128
+    let d2l = 1 / (2 * l)
+
+    ctx.save()
+
+    if (white) {
+      // ctx.fillStyle = `hsl(0, 0%, ${this.bassSpike ? 100 : 0}%)`
+      ctx.fillStyle = '#000'
+      ctx.strokeStyle = '#fff'
+    } else {
+      let hue = this.tick / 10 + 10 * sin(this.tick / 10)
+      let l = (55 - floor(20 * bass)) / this.speed
+      ctx.strokeStyle = `hsl(${hue % 360}, 100%, ${l}%)`
+      ctx.globalCompositeOperation = 'lighter'
+    }
+
+    ctx.lineWidth = this.bassSpike ? (white ? 3 : 5) : 1
+
+    let start = floor(0.5 * l)
+    let end = floor(1.5 * l)
+    let offset = utils.getMaxes(data[0].time, 1, start, end)[0][0] - start
+
+    let q = 0.5 + 0.5 * cos(this.tick / 500)
+
+    ctx.beginPath()
+    for (let j = 0; j < 2 * l; j += 2) {
+      let i = ~~abs(l - (j % (2 * l)))
+      let t0 = data[0].time[i + offset] * d128 - 1
+      let t1 = data[0].time[i + offset + 1] * d128 - 1
+      let r = R + h * (t0 + t1) + 2 * h * bass
+      let a = tau * (j * d2l) - 0.5 * PI
+
+      let { x, y } = this.getPolyPoint(a, r, q)
+      ctx[j == 0 ? 'moveTo' : 'lineTo'](x, y)
+    }
+    if (white) ctx.fill()
+    ctx.closePath()
+    ctx.stroke()
+
+    ctx.restore()
+  }
+
+  drawInnerMask(ctx, data, bass) {
+    let R = this.r2 * this.bassMul
+    let h = 0.2 * this.r2
+    let l = floor(data[0].freq.length / 3)
+    let avg = utils.average(data[0].freq, 1, l)
+    let rs = 1 + avg / 255
+
+    let d255 = 1 / 255
+    let d4l = 1 / (4 * l)
+
+    ctx.save()
+
+    ctx.fillStyle = '#000'
+    let q = 0.5 + 0.5 * cos(this.tick / 500)
+
+    ctx.beginPath()
+    for (let j = 0; j < 4 * l; j++) {
+      let i = ~~abs(l - (j % (2 * l)))
+      let f = rs * max(0, data[0].freq[i] - avg) * d255
+      let t = data[1].time[i * 2]
+      let r = R + h * (t - 0.5 * f) - 2
+      let a = tau * j * d4l + 0.5 * PI
+
+      let { x, y } = this.getPolyPoint(a, r, q)
+      ctx[j == 0 ? 'moveTo' : 'lineTo'](x, y)
+    }
+
+    R -= h * bass ** 2
+
+    for (let j = 0; j < 4 * l; j++) {
+      let i = ~~abs(l - (j % (2 * l)))
+      let f = rs * max(0, data[0].freq[i] - avg) * d255
+      let t = data[1].time[i * 2]
+      let r = R + h * (t - 0.5 * f) - 12
+      let a = tau - tau * j * d4l + 0.5 * PI
+
+      let { x, y } = this.getPolyPoint(a, r, q)
+      ctx[j == 0 ? 'moveTo' : 'lineTo'](x, y)
+    }
+    ctx.fill()
+    ctx.restore()
+  }
+
+  drawOuter(ctx, data, bass, white) {
+    let R = this.r2 * this.bassMul
+    let h = 0.2 * this.r2
+    let l = floor(data[0].freq.length / 3)
+    let avg = utils.average(data[0].freq, 1, l)
+    let rs = 1 + avg / 255
+
+    let d255 = 1 / 255
+    let d4l = 1 / (4 * l)
+
+    ctx.save()
+
+    if (white) {
+      ctx.fillStyle = '#fff'
+    } else {
+      let hue = this.tick / 10 + 10 + 10 * sin(this.tick / 10)
+      let l = (52 + floor(bass * 5)) / this.speed
+      ctx.fillStyle = `hsl(${hue % 360}, 100%, ${l}%)`
+      ctx.globalCompositeOperation = 'lighter'
+    }
+
+    let q = 0.5 + 0.5 * cos(this.tick / 500)
+
+    ctx.beginPath()
+    for (let j = 0; j < 4 * l; j++) {
+      let i = ~~abs(l - (j % (2 * l)))
+      let f = rs * max(0, data[0].freq[i] - avg) * d255
+      let t = data[1].time[i * 2]
+      let r = R + h * (f + t)
+      let a = tau * j * d4l + 0.5 * PI
+
+      let { x, y } = this.getPolyPoint(a, r, q)
+      ctx[j == 0 ? 'moveTo' : 'lineTo'](x, y)
+    }
+
+    R -= h * bass ** 2
+
+    for (let j = 0; j < 4 * l; j++) {
+      let i = ~~abs(l - (j % (2 * l)))
+      let f = rs * max(0, data[0].freq[i] - avg) * d255
+      let t = data[1].time[i * 2]
+      let r = R + h * (t - 0.5 * f) - 1.5 * white
+      let a = tau - tau * j * d4l + 0.5 * PI
+
+      let { x, y } = this.getPolyPoint(a, r, q)
+      ctx[j == 0 ? 'moveTo' : 'lineTo'](x, y)
+    }
+    ctx.fill()
+    ctx.restore()
+  }
+
+  renderFrame(t){
+    // Run upstream 60 Hz equations once, then copy this exact frame to both previews.
+    if(this.lastTime!==null&&t-this.lastTime<1/60-.0005)return;
+    this.lastTime=t;this.tick++;
+    let bass=utils.max(raveData[1].time,abs);this.bassMul=1+bass/3;
+    this.bassbuf.shift();this.bassbuf.push(bass);const bassAvg=utils.average(this.bassbuf);this.bassSpike=bass>.3&&bass>1.3*bassAvg;
+    bass+=.1*utils.average(raveData[0].freq,0,2)/255;
+    const ctx=this.ctx,buf=this.buf;ctx.save();ctx.translate(300,300);
+    ctx.clearRect(-300,-300,600,600);const scale=1.04;
+    ctx.drawImage(this.buffer,-300*scale,-300*scale,600*scale,600*scale);
+    ctx.fillStyle=`rgba(0,0,0,${1-RAVE_DEFAULTS.trail})`;ctx.fillRect(-300,-300,600,600);
+    this.drawInner(ctx,raveData,bass,false);this.drawInnerMask(ctx,raveData,bass);this.drawOuter(ctx,raveData,bass,false);
+    buf.clearRect(0,0,600,600);buf.drawImage(this.canvas,0,0);
+    this.drawInner(ctx,raveData,bass,true);this.drawOuter(ctx,raveData,bass,true);ctx.restore();
+  }
+}
+const raveRenderer=new RaveOriginal();
+function updateRave(t){
+  if(!S.playing)return;
+  if(S.audioSrc==='demo'){
+    const beat=Math.pow(Math.max(0,Math.sin(t*Math.PI*2*128/60)),8);
+    for(let i=0;i<2048;i++){raveData[0].time[i]=Math.max(0,Math.min(255,128+RAVE_DEFAULTS.gain*(Math.sin(i*.05+t*4)*(.1+beat*.55)+Math.sin(i*.16)*.12)*127));raveData[1].time[i]=Math.sin(i*.025+t)*(.1+beat*.55)*RAVE_DEFAULTS.gain*RAVE_DEFAULTS.bass;}
+    for(let i=0;i<1024;i++)raveData[0].freq[i]=Math.min(255,RAVE_DEFAULTS.gain*(25+beat*180)*Math.exp(-i/140)*(.5+.5*Math.sin(i*.07+t)**2));
+  }else if(raveAnalyser){raveAnalyser.getByteTimeDomainData(raveData[0].time);raveAnalyser.getByteFrequencyData(raveData[0].freq);raveBassAnalyser.getFloatTimeDomainData(raveData[1].time);for(let i=0;i<2048;i++)raveData[1].time[i]*=RAVE_DEFAULTS.bass;}
+  raveRenderer.renderFrame(t);
+}
+function applyVisualSettings(){
+  const locked=S.effect===3;document.getElementById('raveLockNote').hidden=!locked;for(const id of ['vis-gain','vis-bass','vis-smoothing','vis-trail','vis-rgb','colorMode','effectColor','resetVisual','visualPreset'])document.getElementById(id).disabled=locked;
+  document.querySelectorAll('[data-custom-only]').forEach(el=>el.hidden=locked);
+  updateColorControls();
+  if(document.getElementById('micSensitivityRow'))document.getElementById('micSensitivityRow').hidden=S.audioSrc!=='mic'||locked;
+  if(raveInput)raveInput.gain.value=RAVE_DEFAULTS.gain;
+  if(raveAnalyser)raveAnalyser.smoothingTimeConstant=RAVE_DEFAULTS.smoothing;
+  if(analyser)analyser.smoothingTimeConstant=Math.min(.25,visualSettings.smoothing);
+  for(const key of Object.keys(visualDefaults)){const el=document.getElementById('vis-'+key);el.value=visualSettings[key];document.getElementById('out-'+key).textContent=Number(visualSettings[key]).toFixed(2);}
+}
+for(const key of Object.keys(visualDefaults))document.getElementById('vis-'+key).oninput=e=>{if(S.effect===3)return;visualSettings[key]=Number(e.target.value);applyVisualSettings();};
+document.getElementById('resetVisual').onclick=()=>{if(S.effect===3)return;Object.assign(visualSettings,S.effect===3?visualDefaults:builtinDefaults);effectColors.mode="rgb";effectColors.hex="#5eead4";document.getElementById("colorMode").value="rgb";document.getElementById("effectColor").value=effectColors.hex;applyVisualSettings();updateColorControls();raveRenderer.reset();};
+applyVisualSettings();
+
+function ensureCtx(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = Math.min(.25,visualSettings.smoothing);
+    freqData = new Uint8Array(analyser.frequencyBinCount);
+  }
+  if(audioCtx.state==='suspended') audioCtx.resume();
+}
+
+let audioSession=0, starting=false, fileURL=null, waveData=null;
+const inputSelect=document.getElementById('inputDevice'), audioStatus=document.getElementById('audioStatus');
+function showAudioState(){
+  document.getElementById('playBtn').textContent=starting?'取消连接':S.playing?'停止分析':'开始分析';
+  document.getElementById('visualState').textContent=S.playing?({demo:'演示节奏',file:'上传音乐',mic:'麦克风 · 实时',blackhole:'BlackHole · 实时',system:'共享音频 · 实时'}[S.audioSrc]):'等待音频';
+}
+function showInputError(err){
+  audioStatus.textContent=inputError(err);
+  const option=document.createElement('option');option.value='';option.textContent=err.name==='NotAllowedError'?'音频权限未允许 · 请点击授权':'设备访问失败 · 请重试';inputSelect.replaceChildren(option);
+  document.getElementById('deviceAccessStatus').textContent=err.name==='NotAllowedError'?'如果没有弹出询问，请在浏览器站点权限和 macOS 麦克风权限中允许当前浏览器。网页无法重置已拒绝的系统权限。':'';
+}
+function populateOutputs(devices){
+  const el=document.getElementById('outputDevice'),previous=el.value;el.replaceChildren();const option=document.createElement('option');option.value='';option.textContent='跟随系统默认输出';el.appendChild(option);
+  for(const d of devices){const opt=document.createElement('option');opt.value=d.deviceId;opt.textContent=d.label||'音频输出设备';el.appendChild(opt);}if(devices.some(d=>d.deviceId===previous))el.value=previous;
+}
+async function setOutput(id){
+  if(!audioCtx){ensureCtx();await audioCtx.resume();}
+  if(typeof audioCtx.setSinkId!=='function')throw new Error('当前浏览器不支持网页选择输出，请在 macOS 声音设置中选择。');
+  await audioCtx.setSinkId(id);document.getElementById('deviceAccessStatus').textContent='已更新上传音乐的播放输出；麦克风/BlackHole 不回放以避免回声。';
+}
+document.getElementById('outputDevice').onchange=async e=>{try{await setOutput(e.target.value);}catch(err){if(err.name==='NotAllowedError'&&navigator.mediaDevices?.selectAudioOutput){try{const d=await navigator.mediaDevices.selectAudioOutput({deviceId:e.target.value});await setOutput(d.deviceId);}catch(e){audioStatus.textContent=inputError(e);}}else audioStatus.textContent=err.message;}};
+document.getElementById('requestOutput').onclick=async()=>{try{if(!navigator.mediaDevices?.selectAudioOutput)throw new Error('当前浏览器不支持输出授权弹窗，请使用系统声音设置选择输出。');const d=await navigator.mediaDevices.selectAudioOutput();populateOutputs([d]);document.getElementById('outputDevice').value=d.deviceId;await setOutput(d.deviceId);}catch(err){document.getElementById('deviceAccessStatus').textContent=err.message;}};
+const inputChoices={mic:'',blackhole:''};let inputRequest=0;
+function inputError(err){
+  const tips={NotAllowedError:'音频权限被拒绝。请在浏览器站点权限及 macOS「隐私与安全性 → 麦克风」中允许当前浏览器，然后刷新。',NotFoundError:'系统未提供可用的音频输入。请检查设备连接。',NotReadableError:'设备无法打开，可能被其他应用占用。关闭其他录音应用后重试。',OverconstrainedError:'所选设备已失效，请刷新设备列表。',SecurityError:'此页面无法获得音频权限，请在支持录音的浏览器中打开。'};
+  return tips[err.name]||err.message;
+}
+async function listInputs(requestPermission=false){
+  const request=++inputRequest,source=S.audioSrc;
+  if(!navigator.mediaDevices?.getUserMedia)throw new Error('当前浏览器未提供录音接口。请使用 Chrome 打开页面并允许麦克风权限。');
+  let probe=null,allDevices=[],trackInfo=null;
+  try{if(requestPermission)probe=await navigator.mediaDevices.getUserMedia({audio:true});allDevices=await navigator.mediaDevices.enumerateDevices();const track=probe?.getAudioTracks()[0];if(track){const info=track.getSettings?.()||{};trackInfo={kind:'audioinput',deviceId:info.deviceId||'__default_input__',label:track.label||'默认麦克风（已验证可采集）'};}}
+  finally{probe?.getTracks().forEach(track=>track.stop());}
+  const devices=allDevices.filter(d=>d.kind==='audioinput'&&d.deviceId);
+  if(!devices.length&&trackInfo)devices.push(trackInfo);
+  if(request!==inputRequest||source!==S.audioSrc)return [];
+  populateOutputs(allDevices.filter(d=>d.kind==='audiooutput'&&d.deviceId));
+  document.getElementById('deviceAccessStatus').textContent=allDevices.some(d=>d.kind==='audioinput')?`可用输入 ${devices.length} 个 · 输出 ${allDevices.filter(d=>d.kind==='audiooutput').length} 个`:trackInfo?'浏览器未列出设备，但默认录音流可用。BlackHole 必须识别到实际设备后才能选择；也可尝试设备音频共享。':'浏览器未暴露音频输入。授权并不保证嵌入式浏览器开放设备列表；可在独立 Chrome 中尝试。';
+  if(request!==inputRequest||source!==S.audioSrc)return [];
+  // Keep all inputs: aggregate devices can have arbitrary user-assigned names.
+  const named=devices.filter(d=>d.label),preferred=source==='blackhole'?named.find(d=>/blackhole/i.test(d.label)):named.find(d=>/microphone|麦克风|built.in mic/i.test(d.label)&&!/blackhole/i.test(d.label));
+  const selected=devices.some(d=>d.deviceId===inputChoices[source])?inputChoices[source]:(preferred?.deviceId||'');
+  inputSelect.replaceChildren();
+  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='系统默认输入';inputSelect.appendChild(placeholder);
+  devices.forEach((d,i)=>{const option=document.createElement('option');option.value=d.deviceId;option.textContent=d.label||`音频输入 ${i+1}（尚未授权显示名称）`;inputSelect.appendChild(option);});
+  inputSelect.value=selected;inputChoices[source]=selected;
+  audioStatus.textContent='';
+  return devices;
+}
+document.getElementById('refreshInputs').onclick=async()=>{try{await listInputs(true);}catch(e){showInputError(e);}};
+inputSelect.onchange=()=>{inputChoices[S.audioSrc]=inputSelect.value;stopAudio();audioStatus.textContent=inputSelect.value?'已选择输入设备，点击开始分析。':'请选择音频输入设备。';};
+navigator.mediaDevices?.addEventListener?.('devicechange',()=>{if(['mic','blackhole'].includes(S.audioSrc))listInputs().catch(e=>audioStatus.textContent=inputError(e));});
+async function startAudio(){
+  stopTimed();
+  const session=++audioSession;starting=true;showAudioState();audioStatus.textContent='正在准备音频…';
+  let pendingStream=null;
+  try {
+    if(S.audioSrc==='system'){
+      if(!navigator.mediaDevices?.getDisplayMedia)throw new Error('当前浏览器不支持设备音频共享。请在 Chrome 中尝试共享标签页音频，或选择已安装的 BlackHole。');
+      pendingStream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true,systemAudio:'include'});
+      if(session!==audioSession){pendingStream.getTracks().forEach(t=>t.stop());return;}
+      if(!pendingStream.getAudioTracks().length){pendingStream.getTracks().forEach(t=>t.stop());throw new Error('此次共享没有音频。请勾选「共享音频」；macOS 通常可共享 Chrome 标签页音频，整个系统音频取决于浏览器支持。');}
+    }
+    ensureCtx();await audioCtx.resume();
+    if(session!==audioSession)return;
+    if(S.audioSrc==='system'){micStream=pendingStream;srcNode=audioCtx.createMediaStreamSource(micStream);srcNode.connect(analyser);connectRaveAudio(srcNode);micStream.getTracks().forEach(track=>track.onended=()=>stopAudio());}
+    else if(S.audioSrc==='file'){
+      if(!audioEl.src){starting=false;showAudioState();audioStatus.textContent='请选择音频文件。';return;}
+      if(!mediaSrc) mediaSrc=audioCtx.createMediaElementSource(audioEl);
+      mediaSrc.disconnect();mediaSrc.connect(analyser);mediaSrc.connect(audioCtx.destination);srcNode=mediaSrc;connectRaveAudio(srcNode);await audioEl.play();
+    }else if(S.audioSrc==='mic'||S.audioSrc==='blackhole'){
+      pendingStream=await navigator.mediaDevices.getUserMedia({audio:{...((!inputSelect.value||inputSelect.value==='__default_input__')?{}:{deviceId:{exact:inputSelect.value}}),echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+      if(session!==audioSession){pendingStream.getTracks().forEach(t=>t.stop());return;}
+      micStream=pendingStream;srcNode=audioCtx.createMediaStreamSource(micStream);
+      micGain=audioCtx.createGain();micGain.gain.value=micSensitivity;srcNode.connect(micGain);micGain.connect(analyser);connectRaveAudio(srcNode);
+      await listInputs(false);
+      if(session!==audioSession){pendingStream.getTracks().forEach(t=>t.stop());return;}
+      micStream.getAudioTracks().forEach(track=>track.onended=()=>{stopAudio();audioStatus.textContent='音频输入已断开，请重新选择设备。';});
+    }
+    if(session!==audioSession)return;
+    resetMotion();
+    if(S.breath.running) stopBreathing();
+    S.playing=true;usageCheckpoint=Date.now();updatePlayer();S.watchMode='rhythm';audioStatus.textContent=S.audioSrc==='demo'?'演示数据 · 未采集声音':S.audioSrc==='blackhole'?'正在采集 BlackHole。若无波形，请播放音乐并检查多输出设备。':'音频分析中';
+  } catch(e){if(pendingStream)pendingStream.getTracks().forEach(t=>t.stop());if(session===audioSession){stopAudio();audioStatus.textContent='无法开始：'+inputError(e);}}
+  finally{if(session===audioSession){starting=false;showAudioState();}}
+}
+function stopAudio(){
+  recordUsage();persistUsage();renderUsage();++audioSession;starting=false;S.playing=false;audioEl.pause();updatePlayer();
+  if(srcNode){try{srcNode.disconnect();}catch(e){}srcNode=null;}
+  if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;}
+  if(micGain){micGain.disconnect();micGain=null;}
+  resetMotion();S.bands={low:0,mid:0,high:0};if(S.watchMode==='rhythm')S.watchMode='idle';showAudioState();audioStatus.textContent='已停止音频分析';
+}
+document.getElementById('playBtn').onclick=()=>S.playing||starting?stopAudio():startAudio();
+document.querySelectorAll('#srcSeg button').forEach(btn=>btn.onclick=async()=>{
+  stopAudio();S.audioSrc=btn.dataset.src;
+  document.querySelectorAll('#srcSeg button').forEach(el=>el.classList.toggle('sel',el===btn));
+  document.getElementById('srcDesc').textContent={demo:'内置演示节奏 · 无需音频权限',file:'选择上传音乐并播放',mic:'通过麦克风收录周围的声音',blackhole:'通过 BlackHole 或聚合输入采集电脑声音',system:'点击开始分析，选择共享来源并勾选共享音频。无需安装 BlackHole；可用范围取决于浏览器。'}[S.audioSrc];
+  document.getElementById('inputControls').hidden=!['mic','blackhole'].includes(S.audioSrc);
+  document.getElementById('inputHelp').textContent=S.audioSrc==='blackhole'?'系统输出选 Multi-Output Device；此处输入选 BlackHole 2ch。多输出设备只有输出通道，不会列为录音输入。自定义聚合设备可手动选择。':'选择电脑内置麦克风或外接麦克风。';
+  if(['mic','blackhole'].includes(S.audioSrc)){try{await listInputs(false);}catch(e){showInputError(e);}}
+  document.getElementById('srcDesc').hidden=S.audioSrc!=='file';
+  updateSourceControls();
+});
+document.getElementById('fileInput').onchange=e=>{const file=e.target.files[0];if(!file)return;stopAudio();if(fileURL)URL.revokeObjectURL(fileURL);fileURL=URL.createObjectURL(file);audioEl.src=fileURL;document.getElementById('srcDesc').hidden=false;document.getElementById('srcDesc').textContent='已加载：'+file.name;audioEl.load();updateSourceControls();updatePlayer();};
+audioEl.onended=()=>stopAudio();
+window.addEventListener('pagehide',()=>stopAudio());
+
+// One analysis snapshot drives both screens. Never normalize a quiet signal up to full scale.
+const motion={time:null,mean:0,envelope:0,pulse:0,rms:0,level:0,shock:0,direction:1,samples:Array(128).fill(1),history:[],lastHistory:0};
+function resetMotion(){BassTrigger.reset();Shepherd.stop();raveRenderer.reset();Object.assign(motion,{time:null,mean:0,envelope:0,pulse:0,rms:0,level:0,shock:0,direction:1,lastHistory:0});motion.samples.fill(1);motion.history=[];customMotion.events=[];customMotion.lastBeat=-10;customMotion.loudness=.025;}
+const customMotion={rotation:'cw',angle:0,direction:'in',burst:'dots',events:[],lastBeat:-10,loudness:.025,spectrumRef:-55};
+function motionStep(low,mid,high,rms,dt,bassEvent=false){
+ const gate=Math.max(0,Math.min(1,(rms-.002)/.010));
+ customMotion.loudness+=(rms-customMotion.loudness)*(1-Math.exp(-dt/1.8));
+ const relative=Math.min(2.5,rms/Math.max(.014,customMotion.loudness));
+ const beat=bassEvent?Math.min(1,BassTrigger.strength):0;
+ const bass=Math.min(1,BassTrigger.strength);
+ const target=1-Math.exp(-visualSettings.gain*(gate*relative*.28+bass*visualSettings.bass*.32+beat*.55));
+ const tau=target>motion.envelope?.012:.065+visualSettings.smoothing*.18;
+ motion.envelope+=(target-motion.envelope)*(1-Math.exp(-dt/tau));
+ motion.shock=Math.max(beat,(motion.shock||0)*Math.exp(-dt/.09));
+ motion.pulse=beat;motion.rms=rms;motion.mean=customMotion.loudness;motion.level=target;motion.direction=1;
+ const time=motion.time||0;
+ if(bassEvent){customMotion.lastBeat=time;if(customMotion.burst!=='none')customMotion.events.push({time,strength:beat});}
+ customMotion.events=customMotion.events.filter(e=>time-e.time<1.2).slice(-8);
+ return motion.envelope;
+}
+const customBassWave=new Float32Array(2048);
+function updateBands(t){
+  const dt=motion.time===null?1/60:Math.min(.1,Math.max(.001,t-motion.time));motion.time=t;
+  if(!S.playing){Shepherd.step({},dt,appSettings.reduceMotion,0);return;}
+  let rms=0;
+  if(S.audioSrc!=='demo'&&analyser){
+    // Use fresh audio snapshots; Shepherd gates RMS independently of pitch.
+    analyser.smoothingTimeConstant=selectedPet==='shepherd'?0:Math.min(.25,visualSettings.smoothing);
+    analyser.getByteFrequencyData(freqData);
+    if(!waveData||waveData.length!==analyser.fftSize)waveData=new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(waveData);
+    for(const value of waveData)rms+=((value-128)/128)**2;rms=Math.sqrt(rms/waveData.length);
+    customBassWave.fill(0);
+    if(raveBassAnalyser)raveBassAnalyser.getFloatTimeDomainData(customBassWave);
+    S.bands=AudioBands.analyze(freqData,audioCtx.sampleRate,analyser.fftSize,analyser.minDecibels,analyser.maxDecibels);
+  }else{
+    const beat=Math.pow(Math.max(0,Math.sin(t*Math.PI*2*128/60)),10);
+    for(let i=0;i<customBassWave.length;i++)customBassWave[i]=Math.sin(i*.025+t)*(.1+beat*.55);
+    S.bands={low:.12+beat*.8,mid:.12+.16*(.5+.5*Math.sin(t*2)),high:.025+.20*Math.pow(.5+.5*Math.sin(t*7),4),highHz:1500+11000*(.5+.5*Math.sin(t*1.7))};rms=.08+beat*.22;
+  }
+  const bassEvent=BassTrigger.step(customBassWave,dt);
+  S.bands.bassPeak=BassTrigger.strength;
+  if(bassEvent)advanceBeatColor(t,BassTrigger.strength);
+  Shepherd.step(S.bands,dt,appSettings.reduceMotion,rms,bassEvent);
+  const {low,mid,high}=S.bands;motionStep(low,mid,high,rms,dt,bassEvent);
+  // One logarithmic spectrum per semicircle, exactly duplicated on its opposite side.
+  const alpha=1-Math.exp(-dt/(.012+visualSettings.smoothing*.065));
+  customMotion.angle+=(customMotion.rotation==='cw'?1:customMotion.rotation==='ccw'?-1:0)*dt*.65;
+  const profile=[];
+  for(let i=0;i<64;i++){
+    const hz=20*Math.pow(1000,i/63);let value;
+    if(S.audioSrc==='demo')value=(low*Math.exp(-hz/300)+mid*Math.exp(-(Math.log(hz/1300)**2))+high*Math.exp(-(Math.log(hz/7000)**2)));
+    else{const bin=hz*analyser.fftSize/audioCtx.sampleRate,index=Math.min(freqData.length-2,Math.floor(bin)),fraction=Math.min(1,bin-index);const byte=freqData[index]*(1-fraction)+freqData[index+1]*fraction;const db=analyser.minDecibels+byte/255*(analyser.maxDecibels-analyser.minDecibels);value=Math.max(0,Math.min(1,(db-customMotion.spectrumRef+12)/24));}
+    profile.push(Math.max(0,Math.min(1,value)));
+  }
+  // Blend the tiny wrap region to keep the contour closed without a radial seam.
+  const seam=(profile[0]+profile[63])/2;for(let i=0;i<3;i++){const weight=(3-i)/3;profile[i]=profile[i]*(1-weight)+seam*weight;profile[63-i]=profile[63-i]*(1-weight)+seam*weight;}
+  const gate=Math.min(1,Math.max(0,(rms-.002)/.012));
+  for(let i=0;i<64;i++){
+    const value=(profile[(i+63)%64]+2*profile[i]+profile[(i+1)%64])/4;
+    const target=1+motion.envelope*.12+value*.32*gate;
+    const next=motion.samples[i]+(target-motion.samples[i])*alpha;
+    motion.samples[i]=next;motion.samples[i+64]=next;
+  }
+  if(t-motion.lastHistory>=.09){motion.lastHistory=t;motion.history.push({time:t,samples:motion.samples.slice()});}
+  motion.history=motion.history.filter(frame=>t-frame.time<(0.2+visualSettings.trail*1.1)).slice(-16);
+  if(S.syncToWatch){document.getElementById('vibeFill').style.width=(motion.envelope*100)+'%';document.getElementById('vibeState').textContent='律动强度 · 预览';}
+}
+
+// 频段表 UI
+function updateBandUI(){
+  const set=(id,v)=>document.getElementById(id).style.height = Math.max(4, v*100)+'%';
+  set('barLow',S.bands.low); set('barMid',S.bands.mid); set('barHigh',S.bands.high);
+  document.getElementById('blePkt').textContent = '—';
+  document.getElementById('bleDelay').textContent = '—';
+}
+
+// ---------- 特效选择 ----------
+const FX_PREVIEWS = [];
+const fxGrid = document.getElementById('fxGrid');
+[
+ {name:'线条', d:'连续波形环'},
+ {name:'粒子散发', d:'随节奏向外散发'},
+ {name:'尖刺', d:'放射状频谱尖刺'},
+ {name:'raVe 原版', d:'双环 · 频谱 · 彩色拖影'},
+].forEach((fx,i)=>{
+  const div = document.createElement('div');
+  div.className = 'fx'+(i===S.effect?' sel':'');
+  div.innerHTML = `<canvas></canvas><small><b>${fx.name}</b><br>${fx.d}</small>`;
+  div.onclick = ()=>{
+    document.querySelectorAll('.fx').forEach(x=>x.classList.remove('sel'));
+    div.classList.add('sel');
+    selectEffect(i);
+  };
+  fxGrid.appendChild(div);
+  FX_PREVIEWS.push({cv:div.querySelector('canvas'), i});
+});
+
+function selectEffect(i){const oldGroup=S.effect===3?'rave':'builtin',newGroup=i===3?'rave':'builtin';effectProfiles[oldGroup]={...visualSettings};S.effect=i;Object.assign(visualSettings,i===3?RAVE_DEFAULTS:effectProfiles[newGroup]);applyVisualSettings();raveRenderer.reset();document.getElementById('effectSelect').value=String(i);document.getElementById('wsFx').textContent=i!==3&&selectedPet==='shepherd'?FX_NAMES[i]+' · 德牧':FX_NAMES[i];document.querySelectorAll('.fx').forEach((el,k)=>el.classList.toggle('sel',k===i));}
+document.getElementById('effectSelect').onchange=e=>selectEffect(Number(e.target.value));
+// ---------- 手表模拟器 ----------
+const wcv = document.getElementById('watchCanvas');
+const wctx = wcv.getContext('2d');
+const SIZE = 440; // 2x for hi-dpi
+wcv.width = SIZE; wcv.height = SIZE;
+
+// 星云粒子
+const particles = Array.from({length:64},(_,i)=>({
+  a: Math.random()*Math.PI*2, r: 40+Math.random()*140,
+  sp: 0.2+Math.random()*0.9, sz: 1+Math.random()*2.6,
+  hue: 160+Math.random()*100
+}));
+
+let ripples = []; // {r, alpha, hue}
+let lastBeat = 0;
+
+function drawWatch(t){
+  const c=wctx;c.clearRect(0,0,SIZE,SIZE);
+  if(S.watchMode==='breathing'){drawBreathing(c,t);return;}
+  if(timed.mode){drawBuiltin(c,SIZE,SIZE,t,true,0);drawCat(c,SIZE,SIZE,t,true);return;}
+  drawAudioRing(c,SIZE,SIZE,t,S.syncToWatch&&S.playing);
+  document.getElementById('wsMode').textContent=S.playing?(S.syncToWatch?'与主页同步 · 律动预览':'同步已关闭'):'等待音频';
+  if(!S.playing||!S.syncToWatch){document.getElementById('vibeFill').style.width='0%';document.getElementById('vibeState').textContent='待机';}
+}
+
+function drawBreathing(c, t){
+  const B = S.breath;
+  const cx=SIZE/2, cy=SIZE/2;
+  const e = (t - B.start);
+  if(e >= B.endDuration){ stopBreathing(true); return; }
+
+  // 相位计算
+  const tIn=B.tIn, tHold=B.tHold, tOut=B.tOut, cycle=tIn+tHold+tOut+(B.tRest||0);
+  let ph = e % cycle, phase='in', prog=ph/tIn;
+  if(ph < tIn){ phase='in'; }
+  else if(ph < tIn+tHold){ phase='hold'; prog=(ph-tIn)/tHold; }
+  else if(ph<tIn+tHold+tOut){ phase='out'; prog=(ph-tIn-tHold)/tOut; }else{phase='rest';prog=(ph-tIn-tHold-tOut)/(B.tRest||1);}
+
+  const ease = x => x<0.5 ? 2*x*x : 1-Math.pow(-2*x+2,2)/2;
+  let scale; // 0收缩 ~ 1扩张
+  if(phase==='in') scale = ease(prog);
+  else if(phase==='hold') scale = 1;
+  else if(phase==='rest')scale=0;else scale = 1-ease(prog);
+
+  // 吸气阶段 → 震动开启（S.vibOn 由主循环控制）
+  S.breath.elapsed = e;
+
+  // 背景
+  const bg = c.createRadialGradient(cx,cy,10,cx,cy,220);
+  bg.addColorStop(0, `rgba(${Math.round(15+scale*8)},${Math.round(30+scale*45)},${Math.round(48+scale*30)},1`);
+  bg.addColorStop(1,'#05070d');
+  c.fillStyle=bg; c.beginPath(); c.arc(cx,cy,220,0,7); c.fill();
+
+  // 外圈刻度（呼吸进度环）
+  const cycProg = ph/cycle;
+  c.strokeStyle='rgba(138,147,173,.25)'; c.lineWidth=4;
+  c.beginPath(); c.arc(cx,cy,178,0,7); c.stroke();
+  c.strokeStyle= phase==='in' ? '#f472b6' : '#5eead4';
+  c.lineWidth=5; c.lineCap='round';
+  c.beginPath(); c.arc(cx,cy,178,-Math.PI/2,-Math.PI/2+cycProg*Math.PI*2); c.stroke();
+
+  // 主呼吸圆
+  const R = 52 + scale*62;
+  const gg = c.createRadialGradient(cx,cy,R*0.3,cx,cy,R);
+  const col = phase==='in' ? [244,114,182] : [94,234,212];
+  gg.addColorStop(0,`rgba(${col[0]},${col[1]},${col[2]},${.25+scale*.3})`);
+  gg.addColorStop(1,`rgba(${col[0]},${col[1]},${col[2]},0)`);
+  c.fillStyle=gg; c.beginPath(); c.arc(cx,cy,R*1.35,0,7); c.fill();
+  c.strokeStyle=`rgba(${col[0]},${col[1]},${col[2]},.9)`; c.lineWidth=3.5;
+  c.beginPath(); c.arc(cx,cy,R,0,7); c.stroke();
+
+  // 震动指示点（吸气时闪烁）
+  if(phase==='in'){
+    for(let k=0;k<3;k++){
+      const vr = R+26+((t*140+k*33)%70);
+      c.strokeStyle=`rgba(244,114,182,${0.5*(1-((vr-R-26)/70))})`;
+      c.lineWidth=2; c.beginPath(); c.arc(cx,cy,vr,0,7); c.stroke();
+    }
+  }
+
+  // 文案
+  const label = {in:'吸 气', hold:'屏 息', out:'呼 气',rest:'屏 息'}[phase];
+  const remain = Math.ceil((phase==='in'?tIn:phase==='hold'?tHold:phase==='rest'?(B.tRest||0):tOut) - prog*(phase==='in'?tIn:phase==='hold'?tHold:phase==='rest'?(B.tRest||0):tOut));
+  c.fillStyle='rgba(232,236,245,.95)'; c.font='700 44px sans-serif'; c.textAlign='center';
+  c.fillText(tr(label), cx, cy+2);
+  c.fillStyle='rgba(138,147,173,.9)'; c.font='600 30px sans-serif';
+  c.fillText(tr(remain+' 秒'), cx, cy+42);
+
+  // 底部剩余总时长
+  const left = Math.max(0, B.endDuration-e);
+  c.fillStyle='rgba(138,147,173,.7)'; c.font='22px sans-serif';
+  c.fillText(tr(`剩余 ${Math.floor(left/60)}:${String(Math.floor(left%60)).padStart(2,'0')}`), cx, cy+142);
+}
+
+// ---------- 呼吸控制 ----------
+const MODES = {
+  '55':  {tIn:5, tHold:0, tOut:5,tRest:0},
+  '478': {tIn:4, tHold:7, tOut:8,tRest:0},
+  'box': {tIn:4, tHold:4, tOut:4,tRest:4},
+};
+document.querySelectorAll('.mode-card').forEach(mc=>{
+  mc.onclick = ()=>{
+    if(S.breath.running){if(S.breath.mode===mc.dataset.mode)return;if(!confirm(tr('结束当前疗愈并切换模式？')))return;stopBreathing();}
+    document.querySelectorAll('.mode-card').forEach(x=>x.classList.remove('sel'));
+    mc.classList.add('sel');
+    S.breath.mode = mc.dataset.mode;
+    Object.assign(S.breath, MODES[mc.dataset.mode]);
+  };
+});
+document.querySelectorAll('[data-dur]').forEach(b=>b.onclick=()=>{
+  if(S.breath.running)return;
+  document.querySelectorAll('[data-dur]').forEach(x=>x.classList.replace('primary','ghost'));
+  b.classList.replace('ghost','primary');
+  if(S.breath.running)return;document.getElementById('customDurationRow').hidden=b.dataset.dur!=='custom';S.breath.dur=b.dataset.dur==='custom'?Math.max(10,Math.min(3600,Number(document.getElementById('customDuration').value)||90)):(+b.dataset.dur)*60;
+});
+document.querySelectorAll('[data-vib]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-vib]').forEach(x=>x.classList.replace('primary','ghost'));
+  b.classList.replace('ghost','primary');
+  S.breath.vib = +b.dataset.vib;
+});
+document.getElementById('breathBtn').onclick = ()=> S.breath.running ? stopBreathing() : startBreathing();
+
+let lastBreathPhoneSecond=-1;
+function startBreathing(){
+  lastBreathPhoneSecond=-1;
+  const cycle=S.breath.tIn+S.breath.tHold+S.breath.tOut+(S.breath.tRest||0);S.breath.endDuration=Math.ceil(S.breath.dur/cycle)*cycle;document.getElementById("breathDurationNote").textContent=`本次 ${S.breath.endDuration} 秒，结束于完整循环。`;
+  stopTimed();
+  stopAudio();
+  S.breath.running = true; S.breath.start = performance.now()/1000;
+  S.watchMode = 'breathing';
+  const b=document.getElementById('breathBtn');
+  b.textContent = '结束疗愈'; b.classList.replace('primary','ghost');
+  b.style.borderColor='#f472b6'; b.style.color='#f472b6';
+  document.getElementById('wsMode').textContent = '呼吸疗愈 · 进行中';
+}
+function stopBreathing(completed=false){
+  if(completed&&S.breath.running){const key=dateKey(new Date());const row=usage[key]||(usage[key]={breaths:0,rhythmMs:0});row.breaths++;persistUsage();renderUsage();}
+  hapticEpoch++;sendHaptic(0);lastBreathHaptic=-Infinity;
+  if(navigator.vibrate)navigator.vibrate(0);
+  S.breath.running = false;
+  if(S.watchMode==='breathing') S.watchMode = 'idle';
+  S.vibOn = false;
+  const b=document.getElementById('breathBtn');
+  b.textContent='开始疗愈'; b.classList.replace('ghost','primary');
+  b.style.borderColor=''; b.style.color='';
+  document.getElementById('wsMode').textContent='表盘待机';
+  document.getElementById('vibeFill').style.width='0%';
+  document.getElementById('vibeState').textContent='待机';
+}
+
+// ---------- 开关 ----------
+function bindSwitch(id, cb, init){
+  const el = document.getElementById(id);
+  el.onclick = ()=>{ el.classList.toggle('on'); cb(el.classList.contains('on')); };
+}
+bindSwitch('syncSw', v=> S.syncToWatch = v);
+bindSwitch('vibSw', v=> S.vibOn_user = v);
+bindSwitch('lightSw', v=> S.lightOn = v);
+let S2 = S; // alias
+S.vibOn_user = true;
+
+// Timed modes share one clock; missed frames never produce catch-up vibration bursts.
+const timed={mode:null,start:0,lastBeat:-1,pulseUntil:0,level:0,stopAt:Infinity};
+let hapticTimer=null,hapticCharacteristic=null,connectedHardware=null,hapticQueue=Promise.resolve(),hapticEpoch=0;
+function sendHaptic(level){
+ if(!appSettings.allowHaptics)level=0;
+ const characteristic=hapticCharacteristic,epoch=hapticEpoch;if(!characteristic)return;
+ hapticQueue=hapticQueue.then(async()=>{if(epoch!==hapticEpoch||characteristic!==hapticCharacteristic)return;const bytes=new TextEncoder().encode('H'+Math.round(Math.max(0,Math.min(1,level))*127)+'\n');if(characteristic.properties.writeWithoutResponse)await characteristic.writeValueWithoutResponse(bytes);else await characteristic.writeValue(bytes);}).catch(()=>{hapticCharacteristic=null;document.querySelectorAll('.haptic-note').forEach(el=>el.textContent='设备写入失败，当前仅显示视觉预览。请重新连接。');});
+}
+function hapticPulse(level,duration){clearTimeout(hapticTimer);hapticEpoch++;sendHaptic(level);if(navigator.vibrate)navigator.vibrate(appSettings.allowHaptics&&level?duration:0);hapticTimer=setTimeout(()=>{sendHaptic(0);},duration);}
+function stopTimed(){timed.mode=null;timed.level=0;clearTimeout(hapticTimer);hapticEpoch++;sendHaptic(0);if(navigator.vibrate)navigator.vibrate(0);document.getElementById('metroStart').textContent='开始节拍';document.getElementById('relaxStart').textContent='开始放松';document.getElementById('beatDisplay').textContent='准备开始';document.getElementById('relaxStatus').textContent='已停止';if(S.watchMode==='timed'){S.watchMode='idle';showAudioState();}}
+function startTimed(mode){stopTimed();stopAudio();if(S.breath.running)stopBreathing();timed.mode=mode;timed.start=performance.now()/1000;timed.lastBeat=-1;timed.stopAt=mode==='relax'?timed.start+Number(document.getElementById('relaxDuration').value)*60:Infinity;S.watchMode='timed';document.getElementById(mode==='metronome'?'metroStart':'relaxStart').textContent='停止';document.getElementById('visualState').textContent=mode==='metronome'?'节拍器':'减压震动';}
+document.getElementById('metroStart').onclick=()=>timed.mode==='metronome'?stopTimed():startTimed('metronome');
+document.getElementById('relaxStart').onclick=()=>timed.mode==='relax'?stopTimed():startTimed('relax');
+for(const id of ['meterTop','meterBottom','metroBpm','metroStrength','relaxPeriod','relaxStrength','relaxDuration'])document.getElementById(id).oninput=()=>{document.getElementById('metroStrengthValue').textContent=document.getElementById('metroStrength').value+'%';document.getElementById('relaxStrengthValue').textContent=document.getElementById('relaxStrength').value+'%';document.getElementById('relaxPeriodValue').textContent=document.getElementById('relaxPeriod').value+' 秒';if(timed.mode)startTimed(timed.mode);};
+function updateTimed(t){
+ if(!timed.mode)return;if(t>=timed.stopAt){stopTimed();return;}
+ const bpm=Math.max(30,Math.min(240,Number(document.getElementById('metroBpm').value)||120));
+ const interval=timed.mode==='metronome'?60/bpm*4/Number(document.getElementById('meterBottom').value):Number(document.getElementById('relaxPeriod').value);
+ const beat=Math.floor((Math.max(0,t-timed.start)+1e-8)/interval),count=Number(document.getElementById('meterTop').value),accent=beat%count===0;
+ if(beat!==timed.lastBeat){timed.lastBeat=beat;const strength=Number(document.getElementById(timed.mode==='metronome'?'metroStrength':'relaxStrength').value)/100;timed.level=strength*(timed.mode==='metronome'&&!accent?.65:1);const duration=Math.min(interval*650,timed.mode==='metronome'?100:400);timed.pulseUntil=t+duration/1000;hapticPulse(timed.level,duration);document.getElementById('beatDisplay').textContent=`${beat%count+1} / ${count}`;}
+ const age=(t-timed.start)%interval;motion.envelope=Math.exp(-age/(timed.mode==='metronome'?.15:.5))*.7;motion.shock=motion.envelope;motion.direction=1;for(let i=0;i<128;i++)motion.samples[i]=1+motion.envelope*(.3+.1*Math.sin(i*.2));
+ document.getElementById('wsMode').textContent=timed.mode==='metronome'?`节拍器 · ${beat%count+1}/${count} · ${bpm} BPM`:'减压震动';
+ document.getElementById('vibeFill').style.width=(t<timed.pulseUntil?timed.level*100:0)+'%';document.getElementById('vibeState').textContent=hapticCharacteristic?'已发送震动指令':'震动节奏预览';
+ if(timed.mode==='relax')document.getElementById('relaxStatus').textContent=`剩余 ${Math.ceil((timed.stopAt-t)/60)} 分钟`;
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stopTimed();if(S.breath.running)stopBreathing();}});window.addEventListener('pagehide',()=>{stopTimed();if(S.breath.running)stopBreathing();});
+
+// ---------- BLE 连接 ----------
+async function bleClickHandler(){
+ if(S.bleConnected){stopTimed();if(connectedHardware?.gatt?.connected)connectedHardware.gatt.disconnect();setDisconnected();return;}
+ const btn=document.getElementById('bleBtn');
+ if(!navigator.bluetooth){document.getElementById('devStatus2').textContent='当前浏览器不支持蓝牙连接，视觉预览可继续使用。';return;}
+ try{btn.disabled=true;btn.textContent='搜索设备…';const device=await navigator.bluetooth.requestDevice({acceptAllDevices:true,optionalServices:['6e400001-b5a3-f393-e0a9-e50e24dcca9e']});const server=await device.gatt.connect();connectedHardware=device;const service=await server.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e');const rx=await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e');if(!rx.properties.write&&!rx.properties.writeWithoutResponse)throw new Error('设备不支持震动指令写入');connectedHardware=device;hapticCharacteristic=rx;setConnected(device.name||'Haptonics');document.getElementById('devState').textContent='已连接 · 按设备 BOOT 启用马达';document.getElementById('batteryTag').textContent='电量未知';document.querySelectorAll('.haptic-note').forEach(el=>el.textContent='已连接兼容设备。按设备 BOOT 启用马达；强度指令会在节拍发生时发送。');device.addEventListener('gattserverdisconnected',()=>{hapticCharacteristic=null;connectedHardware=null;stopTimed();setDisconnected();});}
+ catch(err){if(connectedHardware?.gatt?.connected)connectedHardware.gatt.disconnect();hapticCharacteristic=null;document.getElementById('devStatus2').textContent='未连接：'+err.message;btn.disabled=false;btn.textContent='连接设备';}
+}
+document.getElementById('bleBtn').onclick=bleClickHandler;
+function setConnected(name){
+  const btn = document.getElementById('bleBtn');
+  btn.disabled=false;
+  btn.textContent='已连接 · 点击断开';
+  btn.classList.replace('primary','ghost');
+  btn.style.borderColor='#34d399'; btn.style.color='#34d399';
+  S.bleConnected = true;
+  document.getElementById('devStrip').classList.add('connected');
+  document.getElementById('devName').textContent = name;
+  document.getElementById('devState').textContent = 'BLE 已连接 · 震动控制就绪';
+  document.getElementById('devStatus2').textContent = 'BLE · GATT 已连接';
+  document.getElementById('batteryTag').textContent = '电量 82%';
+  document.getElementById('btIcon').style.opacity = 1;
+  document.getElementById('miniFace').textContent='♥';
+  document.getElementById('miniFace').style.color='#f472b6';
+}
+function setDisconnected(){
+  const btn = document.getElementById('bleBtn');
+  btn.classList.replace('ghost','primary');
+  btn.textContent='连接手表（Web Bluetooth）';
+  btn.style.borderColor=''; btn.style.color='';
+  btn.disabled=false;
+  btn.onclick = bleClickHandler; // 恢复原始连接逻辑
+  S.bleConnected = false;
+  document.getElementById('devStrip').classList.remove('connected');
+  document.getElementById('devName').textContent = '未连接设备';
+  document.getElementById('devState').textContent = '点击连接 Haptonics 手表';
+  document.getElementById('btIcon').style.opacity = 0;
+  document.getElementById('miniFace').textContent='♡';
+  document.getElementById('miniFace').style.color='';
+}
+
+// ---------- 首页 Hero 小动画 ----------
+const hcv = document.getElementById('heroCanvas');
+const hctx = hcv.getContext('2d');
+// Both canvases render the same normalized geometry and history, at the same timestamp.
+function rotatedSample(values,index){const phase=((index-customMotion.angle/(Math.PI*2)*values.length)%values.length+values.length)%values.length;const lo=Math.floor(phase),f=phase-lo;return values[lo]*(1-f)+values[(lo+1)%values.length]*f;}
+function drawBuiltin(c,W,H,t,active,type){
+  const inward=customMotion.direction==='in',base=Math.min(W,H)*(inward?.455:.27),energy=active?Math.min(1,motion.envelope+(motion.shock||0)*.25):0;
+  const samples=active?(appSettings.reduceMotion?motion.samples.map(v=>1+(v-1)*.3):motion.samples):Array(128).fill(1);
+  c.save();c.translate(W/2,H/2);c.lineJoin='round';c.shadowColor=effectColor(t);c.shadowBlur=5+energy*7;const jump=1+(active?(motion.shock||0)*.055*(motion.direction||1):0);c.scale(appSettings.reduceMotion?1:jump,appSettings.reduceMotion?1:jump);
+  const ring=(values,scale,opacity,width)=>{c.beginPath();values.forEach((v,i)=>{const a=i/128*Math.PI*2,sample=rotatedSample(values,i),r=base*(inward?Math.max(.45,2-sample):sample)*scale;i?c.lineTo(Math.cos(a)*r,Math.sin(a)*r):c.moveTo(Math.cos(a)*r,Math.sin(a)*r);});c.closePath();c.lineWidth=width;c.strokeStyle=effectColor(t,opacity);c.stroke();};
+  if(type===0){
+    const lifetime=.2+visualSettings.trail*1.1;
+    if(active)for(const frame of motion.history){const age=t-frame.time;ring(frame.samples,(inward?1-age*.24:1+age*.3),Math.max(0,.2*(1-age/lifetime)),1);}
+    ring(samples,1,.95,2.8);ring(samples,.96,.25,1);
+  }else if(type===1){
+    ring(samples,1,.85,2);
+    for(let i=0;i<100;i++){
+      const seed=((i*37)%101)/101,phase=active?(t*(.22+seed*.12)+seed)%1:seed*.18;
+      const a=i*2.399963+Math.sin(i*3)*.13,r=base*(inward?Math.max(.12,1-phase*(.3+energy*.65)):1+energy*.2+phase*(.2+energy*.65));
+      c.fillStyle=effectColor(t,Math.max(.04,(1-phase)*(.65+energy*.35)));
+      c.beginPath();c.arc(Math.cos(a)*r,Math.sin(a)*r,(1+seed*2+energy*2)*Math.min(W,H)/440,0,Math.PI*2);c.fill();
+    }
+  }else{
+    ring(Array(128).fill(1),1,.4,1);
+    for(let i=0;i<64;i++){
+      const a=i/64*Math.PI*2,v=active?Math.max(0,rotatedSample(samples,i*2)-1):0;
+      const length=base*(.025+v*.7+energy*.22*(.5+.5*Math.sin(i*2.7+t*4)));
+      c.fillStyle=effectColor(t,.8);c.beginPath();
+      c.moveTo(Math.cos(a-.019)*base,Math.sin(a-.019)*base);c.lineTo(Math.cos(a)*(base+(inward?-length:length)),Math.sin(a)*(base+(inward?-length:length)));c.lineTo(Math.cos(a+.019)*base,Math.sin(a+.019)*base);c.closePath();c.fill();
+    }
+  }
+  if(active&&customMotion.burst!=='none'&&!appSettings.reduceMotion)for(const event of customMotion.events){
+    const age=t-event.time,u=age/1.2;if(u<0||u>1)continue;const radius=base*(inward?1-u*.85:1+u*.8),opacity=(1-u)**2*event.strength;
+    c.strokeStyle=effectColor(t,opacity);c.fillStyle=effectColor(t,opacity);c.lineWidth=1.5;c.shadowBlur=0;
+    if(customMotion.burst==='rings'){c.beginPath();c.arc(0,0,radius,0,Math.PI*2);c.stroke();}
+    else for(let k=0;k<24;k++){const angle=k*2.39996+event.time*.6;c.beginPath();c.arc(Math.cos(angle)*radius,Math.sin(angle)*radius,1.5+event.strength,0,Math.PI*2);c.fill();}
+  }
+  c.restore();
+}
+// Centered pet contours, with explicitly requested cat whiskers and bear nose.
+const PETS={
+ shepherd:{name:'德牧',path:'',sprite:true},
+ cat:{name:'猫咪',path:'M -.8 -.1 L -.85 -.8 L -.35 -.47 Q 0 -.6 .35 -.47 L .85 -.8 L .8 -.1 C 1.2 1.1 -1.2 1.1 -.8 -.1 Z'},
+ rabbit:{name:'兔子',path:'M -.53 -.15 C -.94 -.48 -1.02 -1.24 -.88 -1.45 C -.60 -1.30 -.10 -.77 -.16 -.33 Q 0 -.39 .16 -.33 C .10 -.77 .60 -1.30 .88 -1.45 C 1.02 -1.24 .94 -.48 .53 -.15 Q .70 .04 .73 .36 C .82 .80 .70 .96 .38 .94 Q 0 1.16 -.38 .94 C -.70 .96 -.82 .80 -.73 .36 Q -.70 .04 -.53 -.15 Z'},
+ bear:{name:'小熊',path:'M -.72 -.55 C -1.05 -.84 -.96 -1.16 -.76 -1.10 Q -.61 -1.04 -.48 -.82 Q -.2 -.96 0 -.88 Q .2 -.96 .48 -.82 Q .61 -1.04 .76 -1.10 C .96 -1.16 1.05 -.84 .72 -.55 L .87 -.31 L .81 -.29 L .95 -.02 L .87 .02 L .96 .28 L .84 .25 Q .89 .62 .60 .78 L .48 .77 Q .24 1.03 0 .96 Q -.24 1.03 -.48 .77 L -.60 .78 Q -.89 .62 -.84 .25 L -.96 .28 L -.87 .02 L -.95 -.02 L -.81 -.29 L -.87 -.31 Z'},
+ fox:{name:'狐狸',path:'M -.85 .05 L -1 -.95 L -.35 -.5 Q 0 -.65 .35 -.5 L 1 -.95 L .85 .05 L .5 .65 L 0 .95 L -.5 .65 Z'},
+ dog:{name:'狼',path:'M -.90 1.02 L -.72 .50 L -.84 .55 L -.66 .19 L -.76 .24 L -.63 -.16 Q -.68 -.39 -.51 -.56 Q -.58 -.99 -.42 -1.31 Q -.14 -1.11 .00 -.70 L .29 -1.35 Q .42 -1.48 .41 -.55 Q .66 -.40 .67 -.20 Q .80 -.03 1.17 .02 Q 1.36 .04 1.28 .22 L 1.13 .35 L 1.10 .47 Q .88 .57 .59 .52 L .47 .68 Q .60 .87 .68 1.09 L .02 1.10 L -.10 .96 L -.24 1.08 L -.45 .98 L -.57 1.10 Z'},
+ none:{name:'无宠物',path:''}
+};
+PETS.cat.detail='M -.6 .1 L -1.15 -.02 M -.6 .3 L -1.18 .4 M .6 .1 L 1.15 -.02 M .6 .3 L 1.18 .4';
+PETS.bear.detail='M -.15 .15 Q 0 .06 .15 .15 L 0 .32 Z';
+let selectedPet='cat';
+try{const saved=localStorage.getItem('musex-pet');if(PETS[saved])selectedPet=saved;}catch(e){}
+function selectPet(id){if(!PETS[id])return;selectedPet=id;if(S.effect!==3)document.getElementById('wsFx').textContent=id==='shepherd'?FX_NAMES[S.effect]+' · 德牧':FX_NAMES[S.effect];try{localStorage.setItem('musex-pet',id);}catch(e){}document.querySelectorAll('[data-pet]').forEach(el=>{el.setAttribute('aria-pressed',String(el.dataset.pet===id));el.querySelector('.pet-action').textContent=el.dataset.pet===id?'已选用 · 预览':'预览 ›';});if(document.getElementById('petSelect'))document.getElementById('petSelect').value=id;document.getElementById('petStatus').textContent=`已选择${PETS[id].name} · 应用于自制特效，raVe 保持原样`;}
+const petContours={};
+function contourFor(id){
+ if(petContours[id])return petContours[id];const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',PETS[id].path);const length=path.getTotalLength(),points=[];
+ for(let i=0;i<128;i++){const pt=path.getPointAtLength(length*i/128);points.push({x:pt.x,y:pt.y});}
+ const cx=(Math.min(...points.map(p=>p.x))+Math.max(...points.map(p=>p.x)))/2,cy=(Math.min(...points.map(p=>p.y))+Math.max(...points.map(p=>p.y)))/2;
+ return petContours[id]=points.map(p=>({x:p.x-cx,y:p.y-cy}));
+}
+function drawCat(c,W,H,t,active){
+ if(selectedPet==='shepherd'){Shepherd.draw(c,W,H,t,active,appSettings.reduceMotion);return;}
+ if(!PETS[selectedPet].path)return;const points=contourFor(selectedPet),size=Math.min(W,H)*.105;
+ const strength=active?(appSettings.reduceMotion?.25:1):0;
+ const delta=points.map(p=>{const a=(Math.atan2(p.y,p.x)+2*Math.PI)%(2*Math.PI),index=Math.floor(a/(2*Math.PI)*127);return Math.max(-.065,Math.min(.065,(motion.samples[index]-1-motion.envelope*.7)*.9))*strength;});
+ const avg=delta.reduce((a,b)=>a+b,0)/delta.length;
+ c.save();c.translate(W/2,H/2);c.strokeStyle=effectColor(t);c.lineWidth=2;c.lineJoin='round';c.shadowColor=effectColor(t);c.shadowBlur=4;c.beginPath();
+ points.forEach((p,i)=>{const r=Math.hypot(p.x,p.y)||1,offset=(delta[i]-avg)*size,x=p.x*size+p.x/r*offset,y=p.y*size+p.y/r*offset;i?c.lineTo(x,y):c.moveTo(x,y);});c.closePath();c.stroke();if(PETS[selectedPet].detail){c.save();c.scale(size,size);c.lineWidth=2/size;c.stroke(new Path2D(PETS[selectedPet].detail));c.restore();}c.restore();
+}
+function drawAudioRing(c,W,H,t,active){
+ if(S.effect===3){
+   if(!active&&raveRenderer.tick===0){raveData[0].time.fill(128);raveData[0].freq.fill(0);raveData[1].time.fill(0);raveRenderer.renderFrame(0);}
+   const size=Math.min(W,H);c.drawImage(raveRenderer.canvas,(W-size)/2,(H-size)/2,size,size);drawCat(c,W,H,t,active);return;
+ }
+ drawCustomBackground(c,W,H,t);
+ drawBuiltin(c,W,H,t,active,S.effect);drawCat(c,W,H,t,active);
+}
+for(const [id,pet] of Object.entries(PETS)){
+ const button=document.createElement('button');button.className='shop-effect';button.dataset.pet=id;button.onclick=()=>selectPet(id);
+ button.innerHTML=`<svg viewBox="-1.6 -1.6 3.2 3.2" width="48" height="48" aria-hidden="true"><path d="${(pet.path||'M -.7 -.7 L .7 .7 M .7 -.7 L -.7 .7')+' '+(pet.detail||'')}" fill="none" stroke="currentColor" stroke-width=".065" stroke-linejoin="round"/></svg><div><b>${pet.name}</b><small>居中轮廓 · 轻柔律动</small></div><span class="pet-action">选用</span>`;
+ if(pet.sprite){button.querySelector('svg').outerHTML='<img src="assets/shepherd.png" width="48" height="48" alt="德牧" style="object-fit:contain">';button.querySelector('small').textContent='LOW 放大 · MID 暂停 · HIGH 流星';}
+ document.getElementById('petGrid').appendChild(button);
+}
+selectPet(selectedPet);
+function drawHero(t){
+  const w=hcv.clientWidth,h=hcv.clientHeight;if(!w||!h)return;
+  if(hcv.width!==w*2||hcv.height!==h*2){hcv.width=w*2;hcv.height=h*2;}
+  hctx.clearRect(0,0,hcv.width,hcv.height);if(timed.mode){drawBuiltin(hctx,hcv.width,hcv.height,t,true,0);drawCat(hctx,hcv.width,hcv.height,t,true);}else drawAudioRing(hctx,hcv.width,hcv.height,t,S.playing);
+}
+
+// ---------- 特效缩略图动画 ----------
+function drawPreviews(t){
+  FX_PREVIEWS.forEach(({cv,i})=>{if(!cv.clientWidth)return;const W=cv.clientWidth*2,H=cv.clientHeight*2;if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}const c=cv.getContext('2d');c.clearRect(0,0,W,H);if(i<3)drawBuiltin(c,W,H,t,S.playing,i);else{c.strokeStyle=effectColor(t);c.lineWidth=2;for(const r of [.1,.3]){c.beginPath();c.arc(W/2,H/2,H*r,0,Math.PI*2);c.stroke();}}});
+}
+
+document.getElementById('miniSpectrum').title='0 dB = 近期频谱平均功率；范围 −12 至 +12 dB，并非 dBFS';
+const spectrumCanvas=document.getElementById('miniSpectrum'),spectrumCtx=spectrumCanvas.getContext('2d');
+function drawSpectrum(t){
+ const c=spectrumCtx,W=448,H=210,left=54,top=38,bottom=160,right=432;c.clearRect(0,0,W,H);
+ const {ink,accent}=applyAppSettings.palette;c.font='18px sans-serif';c.fillStyle=ink;c.strokeStyle=ink;c.lineWidth=1;
+ for(const db of [-12,-6,0,6,12]){const y=bottom-(db+12)/24*(bottom-top);c.globalAlpha=db===0?.45:.2;c.beginPath();c.moveTo(left,y);c.lineTo(right,y);c.stroke();c.globalAlpha=1;c.fillText(db>0?'+'+db:String(db),0,y+5);}
+ for(const hz of [20,100,1000,20000]){const x=left+Math.log(hz/20)/Math.log(1000)*(right-left);c.fillText(hz>=1000?hz/1000+'k':String(hz),Math.min(right-25,x-10),190);}c.fillText('Hz',410,208);c.fillText('dB rel',0,20);
+ const values=[];let power=0;
+ for(let i=0;i<64;i++){const hz=20*Math.pow(1000,i/63);let db=-100;
+ if(S.playing&&S.audioSrc!=='demo'&&analyser){const index=Math.round(hz*analyser.fftSize/audioCtx.sampleRate);if(index<freqData.length)db=analyser.minDecibels+freqData[index]/255*(analyser.maxDecibels-analyser.minDecibels);}
+ else if(S.playing)db=-85+S.bands.low*55*Math.exp(-hz/500)+S.bands.mid*25*Math.exp(-((Math.log(hz/1000))**2));
+ values.push(db);power+=10**(db/10);}
+ const average=10*Math.log10(Math.max(1e-10,power/64)),dt=Math.min(.1,Math.max(0,t-(drawSpectrum.lastTime??t)));drawSpectrum.lastTime=t;
+ customMotion.spectrumRef+=(average-customMotion.spectrumRef)*(1-Math.exp(-dt/.7));
+ c.strokeStyle=accent;c.lineWidth=2;c.beginPath();
+ values.forEach((db,i)=>{const relative=S.playing&&motion.rms>.002?db-Math.max(-80,customMotion.spectrumRef):-12;const x=left+i/63*(right-left),y=bottom-(Math.max(-12,Math.min(12,relative))+12)/24*(bottom-top);i?c.lineTo(x,y):c.moveTo(x,y);});
+ c.stroke();const caption=S.playing?(S.audioSrc==='demo'?'演示频谱 · 非真实录音':'实时频谱 · 频率 / 相对音量'):'等待音频 · 频率 / 相对音量';const captionEl=document.getElementById('spectrumCaption');if(captionEl.textContent!==tr(caption))captionEl.textContent=caption;
+}
+
+// ---------- 主循环 ----------
+
+let lastDrawTime=-Infinity,lastUiTime=-Infinity,lastBreathHaptic=-Infinity,lastBreathLevel=0;
+function loop(ms){
+  const t = ms/1000;
+  if(t-lastDrawTime<1/(appSettings.frameRate||60)-.0005){requestAnimationFrame(loop);return;}lastDrawTime=t;
+  recordUsage();
+  updateBands(t);
+  updateTimed(t);
+  if(S.effect===3)updateRave(t);
+  drawWatch(t);
+  if(document.getElementById('scr-home').classList.contains('active')||document.getElementById('scr-watch-design')?.classList.contains('active'))drawHero(t);
+  if(S.tab===1&&document.getElementById('scr-rhythm').classList.contains('active'))drawPreviews(t);
+
+
+  // 呼吸震动状态（吸气阶段震动）
+  if(S.breath.running){
+    const e = t - S.breath.start;
+    const {tIn,tHold,tOut} = S.breath;
+    const ph = e % (tIn+tHold+tOut+(S.breath.tRest||0));
+    const wasVib = S.vibOn;
+    const phaseSecond=(ph<tIn?ph:ph<tIn+tHold?ph-tIn:ph<tIn+tHold+tOut?ph-tIn-tHold:ph-tIn-tHold-tOut)%1;
+    const accent=phaseSecond<.10,inhale=ph<tIn,exhale=ph>=tIn+tHold&&ph<tIn+tHold+tOut;
+    S.vibOn = appSettings.allowHaptics&&S.vibOn_user !== false&&(inhale||exhale||accent);   // 吸气 → 震动
+    // Amplitude envelope only: the firmware drives its LRA at 235 Hz (205 Hz fallback).
+    const breathLevel=S.vibOn?((inhale?[.16,.23,.30][S.breath.vib-1]:exhale?[.07,.10,.13][S.breath.vib-1]:0)+(accent?.12:0)):0;
+    if(breathLevel!==lastBreathLevel||t-lastBreathHaptic>.20){sendHaptic(breathLevel);lastBreathLevel=breathLevel;lastBreathHaptic=t;}
+    if(navigator.vibrate&&S.vibOn&&Math.floor(e)!==lastBreathPhoneSecond){lastBreathPhoneSecond=Math.floor(e);navigator.vibrate(inhale?[100,40,760]:exhale?[100,180,40,180,40,180,40]:100);}else if(navigator.vibrate&&!S.vibOn&&wasVib)navigator.vibrate(0);
+    const strength = S.vibOn ? [0.35,0.6,0.9][S.breath.vib-1] : 0;
+    const ripple = 0.12*Math.abs(Math.sin(t*(6+S.breath.vib*3))); // 震动波纹感
+    document.getElementById('vibeFill').style.width = (S.vibOn? (strength+ripple)*100 : 0)+'%';
+    document.getElementById('vibeState').textContent = S.vibOn
+      ? ['','轻柔震动','标准震动','有力震动'][S.breath.vib]
+      : (ph < tIn+tHold||ph>=tIn+tHold+tOut ? '屏息 · 每秒轻震' : '呼气 · 轻震');
+    document.getElementById('wsMode').textContent = ph<tIn ? '疗愈中 · 吸气(震动)' : ph<tIn+tHold ? '疗愈中 · 屏息' : ph>=tIn+tHold+tOut?'疗愈中 · 屏息':'疗愈中 · 呼气';
+  }
+
+  drawSpectrum(t);
+  if(document.getElementById("previewSpectrum")&&!document.getElementById("previewSpectrum").hidden){const pc=document.getElementById("previewSpectrum");pc.getContext("2d").clearRect(0,0,448,210);pc.getContext("2d").drawImage(spectrumCanvas,0,0);}
+  if(t-lastUiTime>.08){updateBandUI();lastUiTime=t;}
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// 演示引导：自动进入律动页10秒后回到首页？不做，保持用户自主。
+// 初始呼吸参数
+Object.assign(S.breath, MODES['55']);
+// Dialogs belong to the phone viewport, rather than the desktop browser viewport.
+function makeDialog(id,title){
+ const layer=document.createElement('div');layer.className='phone-modal-layer';layer.hidden=true;
+ const d=document.createElement('section');d.id=id;d.className='phone-dialog';d.setAttribute('role','dialog');d.setAttribute('aria-modal','true');d.setAttribute('aria-labelledby',id+'Title');
+ const heading=document.createElement('h3');heading.id=id+'Title';heading.textContent=title;
+ const body=document.createElement('div');body.className='dialog-body';
+ const close=document.createElement('button');close.className='btn ghost block';close.textContent='关闭';close.onclick=()=>d.close();d.append(heading,body,close);layer.appendChild(d);document.querySelector('.phone-screen').appendChild(layer);
+ let returnFocus=null;const surfaces=[document.querySelector('.screens'),document.querySelector('.tabbar')];
+ d.showModal=()=>{returnFocus=document.activeElement;layer.hidden=false;surfaces.forEach(el=>el.inert=true);close.focus();};
+ d.close=()=>{layer.hidden=true;surfaces.forEach(el=>el.inert=false);returnFocus?.focus?.();};
+ layer.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();d.close();}if(e.key==='Tab'){const items=[...d.querySelectorAll('button,input,select,a[href]')].filter(el=>!el.disabled&&!el.hidden),first=items[0],last=items.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}};
+ layer.onclick=e=>{if(e.target===layer)d.close();};return d;
+}
+let micSensitivity=3;try{micSensitivity=Math.max(1,Math.min(12,Number(localStorage.getItem('musex-mic-sensitivity'))||3));}catch(e){}
+function updateSourceControls(){
+ const file=S.audioSrc==='file',mic=S.audioSrc==='mic';
+ for(const id of ['uploadMusic','musicPlayer']){const el=document.getElementById(id);if(el)el.hidden=!file||(id==='musicPlayer'&&!audioEl.src);}
+ document.getElementById('playBtn').parentElement.hidden=file;
+ const slider=document.getElementById('micSensitivityRow');if(slider)slider.hidden=!mic||S.effect===3;
+ updatePlayer();
+}
+function formatTime(seconds){const total=Number.isFinite(seconds)?Math.max(0,Math.floor(seconds)):0;return `${Math.floor(total/60)}:${String(total%60).padStart(2,'0')}`;}
+function updatePlayer(){
+ const play=document.getElementById('musicPlay'),seek=document.getElementById('musicSeek'),time=document.getElementById('musicTime');if(!play)return;
+ const ready=!!audioEl.src,duration=Number.isFinite(audioEl.duration)?audioEl.duration:0;
+ play.disabled=!ready;play.textContent=S.playing?'暂停':'播放';seek.disabled=!ready||!duration;seek.max=String(duration||1);seek.value=String(audioEl.currentTime||0);time.textContent=`${formatTime(audioEl.currentTime)} / ${formatTime(duration)}`;
+}
+
+// Compact controls and catalog views share the existing audio/effect state.
+const controlsRoot=document.getElementById('audioControls'),homeDisclosure=document.getElementById('homeControls');
+const controlCards=[...controlsRoot.children].filter(el=>el.classList.contains('card'));
+document.getElementById('homeControlHost').appendChild(controlsRoot);
+homeDisclosure.querySelector('summary').firstChild.textContent='音频源 ';
+homeDisclosure.appendChild(controlCards[0]);controlsRoot.prepend(homeDisclosure);
+const effectDisclosure=document.createElement('details');effectDisclosure.className='card settings-dropdown';
+effectDisclosure.innerHTML='<summary>律动效果与宠物 <span class="sub disclosure">展开 ▾</span></summary>';
+effectDisclosure.appendChild(controlCards[1]);controlsRoot.appendChild(effectDisclosure);
+effectDisclosure.ontoggle=()=>effectDisclosure.querySelector('.disclosure').textContent=effectDisclosure.open?'收起 ▴':'展开 ▾';
+for(const id of ['refreshInputs','requestOutput','inputHelp','deviceAccessStatus','srcDesc'])document.getElementById(id).hidden=true;
+const outputSelect=document.getElementById('outputDevice');const outputLabel=document.querySelector('label[for=outputDevice]');document.getElementById('inputControls').after(outputLabel,outputSelect);
+const petSelect=document.getElementById('petSelect');petSelect.hidden=false;
+petSelect.innerHTML=Object.entries(PETS).map(([id,pet])=>`<option value="${id}">${pet.name}</option>`).join('');
+const petLabel=document.createElement('label');petLabel.className='field';petLabel.textContent='宠物';petLabel.appendChild(petSelect);document.getElementById('effectSelect').after(petLabel);petSelect.value=selectedPet;petSelect.onchange=e=>selectPet(e.target.value);
+const params=controlCards[1].querySelector('details');params.querySelector('summary').textContent='高级灵敏度设置';
+const explanations=[...params.querySelectorAll('p.sub')].map(el=>{const text=el.textContent;el.remove();return text;});
+
+const info=makeDialog('parameterInfo','参数说明');const infoText=document.createElement('div');explanations.forEach(text=>{const p=document.createElement('p');p.className='dialog-copy';p.textContent=text;infoText.appendChild(p);});info.querySelector('.dialog-body').appendChild(infoText);
+const infoBtn=document.createElement('button');infoBtn.className='info-button';infoBtn.textContent='ⓘ';infoBtn.setAttribute('aria-label','参数说明');infoBtn.onclick=e=>{e.preventDefault();info.showModal();};params.querySelector('summary').appendChild(infoBtn);
+const visualPreset=document.getElementById('visualPreset');visualPreset.hidden=false;visualPreset.innerHTML='<option value="balanced">均衡</option><option value="gentle">柔和</option><option value="vivid">动感</option><option value="custom">自定义</option>';
+const presetLabel=document.createElement('label');presetLabel.className='field';presetLabel.textContent='预设';presetLabel.appendChild(visualPreset);params.before(presetLabel);
+const visualPresets={gentle:{gain:.55,bass:.55,smoothing:.7,trail:.55,rgb:.3},balanced:{...builtinDefaults},vivid:{gain:3.6,bass:2.2,smoothing:.02,trail:.96,rgb:2}};
+visualPreset.onchange=()=>{if(S.effect===3)return;const preset=visualPresets[visualPreset.value];if(preset){Object.assign(visualSettings,preset);applyVisualSettings();}};
+for(const key of Object.keys(visualDefaults)){const input=document.getElementById('vis-'+key),handler=input.oninput;input.oninput=e=>{handler(e);visualPreset.value='custom';};}
+applyVisualSettings();
+// Store front: four items per column; full catalogs are ordinary mode-preserving screens.
+const shop=document.getElementById('scr-shop'),shopCards=[...shop.children].filter(el=>el.classList.contains('card'));
+const columns=document.createElement('div');columns.className='shop-columns';shop.appendChild(columns);
+function catalog(name,title,card){const screen=document.createElement('section');screen.className='screen';screen.id='scr-'+name;screen.inert=true;screen.innerHTML=`<button class="back" onclick="switchTab(2)">‹ 商城</button><div class="h1">${title}</div>`;screen.appendChild(card);shop.after(screen);return screen;}
+const effectsScreen=catalog('effects','特效区',shopCards[0]);
+const petsScreen=catalog('pets','宠物区',shopCards[1]);
+for(const [title,effect,preset]of [['极光线条',0,'gentle'],['星尘散发',1,'vivid']]){const item=document.createElement('button');item.className='shop-effect';item.innerHTML=`<span>✧</span><div><b>${title}</b><small>自制特效预设</small></div><span>试用 ›</span>`;item.onclick=()=>{selectEffect(effect);Object.assign(visualSettings,visualPresets[preset]);applyVisualSettings();visualPreset.value=preset;openScreen('rhythm');};shopCards[0].appendChild(item);}
+for(const [name,title,card]of [['effects','特效区',shopCards[0]],['pets','宠物区',shopCards[1]]]){const preview=document.createElement('div');preview.className='card';const heading=document.createElement('b');heading.textContent=title;preview.appendChild(heading);[...card.querySelectorAll('.shop-effect')].slice(0,3).forEach(original=>{const clone=original.cloneNode(true);clone.onclick=()=>{if(clone.dataset.pet)selectPet(clone.dataset.pet);else original.click();};preview.appendChild(clone);});const more=document.createElement('button');more.className='more-link';more.textContent='更多 ›';more.onclick=()=>openScreen(name);preview.appendChild(more);columns.appendChild(preview);}
+effectsScreen.appendChild(shopCards[2]);selectPet(selectedPet);
+// Native color emoji presentation, with a palette and the OS emoji input supported.
+document.querySelectorAll('.mood').forEach(btn=>btn.innerHTML=moodIcon(btn.dataset.mood));
+const emojiDialog=makeDialog('emojiDialog','选择心情');const emojiGrid=document.createElement('div');emojiGrid.className='emoji-picker';
+for(const emoji of ['😀','😃','😄','😁','😆','🥹','😊','🙂','🙃','😉','😍','🥰','😘','😋','😎','🤩','🥳','😌','😐','😔','😫','😢','😭','😤','😡','🤯','😱','😨','😰','😥','🤗','🤔','🫠','🤭','🤫','😴','🥱','😮‍💨','🤒','🤕','❤️','💜']){const btn=document.createElement('button');btn.innerHTML=moodIcon(emoji);btn.setAttribute('aria-label',emoji);btn.onclick=()=>{saveMood(emoji);emojiDialog.close();};emojiGrid.appendChild(btn);}
+const customEmoji=document.createElement('input');customEmoji.placeholder='输入其他心情 emoji';customEmoji.maxLength=24;customEmoji.setAttribute('aria-label','自定义心情 emoji');customEmoji.className='field';
+const saveCustom=document.createElement('button');saveCustom.className='btn primary';saveCustom.textContent='记录心情';saveCustom.onclick=()=>{if(!validMood(customEmoji.value)){customEmoji.setCustomValidity(tr('请选择一个 emoji'));customEmoji.reportValidity();return;}saveMood(customEmoji.value);emojiDialog.close();};customEmoji.oninput=()=>customEmoji.setCustomValidity('');
+const emojiHint=document.createElement('p');emojiHint.className='sub';emojiHint.textContent='Mac 可按 Control + Command + 空格打开系统表情选择器';emojiDialog.querySelector('.dialog-body').append(emojiGrid,emojiHint,customEmoji,saveCustom);
+const customBtn=document.createElement('button');customBtn.className='btn ghost';customBtn.textContent='+ 自定义';customBtn.onclick=()=>emojiDialog.showModal();document.querySelector('#scr-diary .mood-chips').appendChild(customBtn);
+// Settings actions never clear unrelated origin storage.
+const settingsScreen=document.getElementById('scr-settings'),languageCard=document.createElement('div');languageCard.className='card';languageCard.innerHTML='<label class="field">语言 / Language<select id="language"><option value="zh">简体中文</option><option value="en">English</option></select></label>';settingsScreen.querySelector('.h1').after(languageCard);
+const erase=document.createElement('button');erase.className='btn danger block';erase.textContent='抹除本地数据';erase.onclick=()=>{if(!confirm(tr('抹除全部 Haptonics 心情记录和设置？此操作无法撤销')))return;stopAudio();stopTimed();stopBreathing();for(const key of ['musex-moods','musex-settings','musex-pet','musex-language','musex-usage','musex-mic-sensitivity'])localStorage.removeItem(key);location.reload();};settingsScreen.lastElementChild.appendChild(erase);
+
+// Revised home hierarchy.
+const home=document.getElementById('scr-home');home.querySelector('.quick-grid')?.remove();home.querySelector('.hero-visual').after(document.getElementById('devStrip'));
+const todayMood=document.createElement('div');todayMood.className='today-mood';todayMood.innerHTML='<span class="mood-label">今日心情</span>';
+for(const mood of moodValues){const btn=document.createElement('button');btn.className='mood';btn.dataset.mood=mood;btn.innerHTML=moodIcon(mood);btn.setAttribute('aria-label',moodNames[mood]);btn.onclick=()=>{selectedDay=dateKey(new Date());calendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);saveMood(mood);};todayMood.appendChild(btn);}
+const moreMood=document.createElement('button');moreMood.className='back';moreMood.textContent='＋';moreMood.setAttribute('aria-label','自定义心情 emoji');moreMood.onclick=()=>{selectedDay=dateKey(new Date());calendarMonth=new Date(new Date().getFullYear(),new Date().getMonth(),1);renderCalendar();emojiDialog.showModal();};todayMood.appendChild(moreMood);home.querySelector('.hero-visual').before(todayMood);renderCalendar();
+const micRow=document.createElement('label');micRow.id='micSensitivityRow';micRow.className='field';micRow.hidden=true;micRow.innerHTML='<span>麦克风灵敏度</span><output id="micSensitivityValue"></output><input id="micSensitivity" type="range" min="1" max="12" step="0.25" aria-label="麦克风灵敏度">';document.getElementById('inputControls').appendChild(micRow);
+const micSlider=document.getElementById('micSensitivity');micSlider.value=micSensitivity;document.getElementById('micSensitivityValue').textContent=micSensitivity.toFixed(2)+'×';micSlider.oninput=()=>{micSensitivity=Number(micSlider.value);if(micGain)micGain.gain.value=micSensitivity;document.getElementById('micSensitivityValue').textContent=micSensitivity.toFixed(2)+'×';try{localStorage.setItem('musex-mic-sensitivity',String(micSensitivity));}catch(e){}};
+const upload=document.createElement('button');upload.id='uploadMusic';upload.className='btn ghost block';upload.textContent='选择音乐文件';upload.hidden=true;upload.onclick=()=>document.getElementById('fileInput').click();document.getElementById('srcDesc').before(upload);
+const player=document.createElement('div');player.id='musicPlayer';player.className='music-player';player.hidden=true;player.innerHTML='<div class="player-row"><button class="btn primary" id="musicPlay">播放</button><input id="musicSeek" type="range" min="0" max="1" step="0.1" value="0" aria-label="播放进度"></div><div class="player-time" id="musicTime">0:00 / 0:00</div>';upload.after(player);
+document.getElementById('musicPlay').onclick=()=>S.playing||starting?stopAudio():startAudio();document.getElementById('musicSeek').oninput=e=>{audioEl.currentTime=Number(e.target.value);updatePlayer();};
+for(const event of ['loadedmetadata','durationchange','timeupdate','pause','play','ended'])audioEl.addEventListener(event,updatePlayer);
+updateSourceControls();
+for(const el of [presetLabel,params,document.getElementById('colorMode').parentElement,document.getElementById('fixedColorRow')])el.dataset.customOnly='';applyVisualSettings();
+const bundles=document.createElement('div');bundles.className='card';bundles.innerHTML='<b>主题套装</b><p class="sub" style="margin-top:8px">搭配特效、宠物与色彩的完整主题</p><button class="shop-effect" id="shepherdDemo"><img src="assets/shepherd.png" alt="戴墨镜的德牧" width="76" height="76" style="object-fit:contain"><div><b>德牧</b></div><span>体验 Demo ›</span></button>';shop.appendChild(bundles);
+document.getElementById('shepherdDemo').onclick=async()=>{selectEffect(0);selectPet('shepherd');switchTab(0);if(!S.playing){document.querySelector('[data-src="demo"]').click();await startAudio();}};
+
+for(const [id,title,options]of [['motionDirection','律动方向',[['in','向内'],['out','向外']]],['signalBurst','扩散效果',[['dots','颗粒'],['none','无'],['rings','环形']]],['ringRotation','环形旋转',[['cw','顺时针'],['ccw','逆时针'],['none','无']]]]){
+ const label=document.createElement('label');label.className='field';label.dataset.customOnly='';label.textContent=title;
+ const select=document.createElement('select');select.id=id;for(const [value,text]of options){const o=document.createElement('option');o.value=value;o.textContent=text;select.appendChild(o);}label.appendChild(select);petLabel.before(label);
+ select.onchange=()=>{if(id==='motionDirection')customMotion.direction=select.value;else if(id==='ringRotation')customMotion.rotation=select.value;else{customMotion.burst=select.value;customMotion.events=[];}};
+}
+applyVisualSettings();
+// A large phone-local option sheet keeps every dropdown consistent with the app.
+const optionDialog=makeDialog('optionDialog','选择选项');
+for(const select of document.querySelectorAll('.phone-screen select')){
+ function openOptions(e){e?.preventDefault();if(select.disabled||select.closest('[hidden]'))return;
+ const body=optionDialog.querySelector('.dialog-body');body.replaceChildren();body.className='dialog-body select-options';
+ const label=select.closest('label')?.firstChild?.textContent?.trim()||select.getAttribute('aria-label')||'选择选项';optionDialog.querySelector('h3').textContent=label;
+ for(const option of select.querySelectorAll('option')){if(option.disabled)continue;const button=document.createElement('button');button.textContent=option.textContent;button.setAttribute('aria-selected',String(option.value===select.value));button.onclick=()=>{select.value=option.value;select.onchange?.({target:select});select.oninput?.({target:select});optionDialog.close();};body.appendChild(button);}optionDialog.showModal();
+ }
+ select.addEventListener('pointerdown',openOptions);select.addEventListener('mousedown',e=>e.preventDefault());select.addEventListener('keydown',e=>{if(['Enter',' ','ArrowDown','ArrowUp'].includes(e.key))openOptions(e);});
+}
+
+const audioSourcePage=document.createElement('section');audioSourcePage.id='scr-audio-source';audioSourcePage.className='screen';audioSourcePage.inert=true;
+audioSourcePage.innerHTML='<button class="back" id="audioSourceBack">‹ 返回</button><div class="h1">音频源</div>';
+audioSourcePage.appendChild(controlCards[0]);document.getElementById('scr-home').after(audioSourcePage);
+homeDisclosure.open=false;homeDisclosure.ontoggle=null;document.getElementById('disclosureLabel').textContent='选择 ›';
+homeDisclosure.querySelector('summary').onclick=e=>{e.preventDefault();audioReturnScreen=document.getElementById('scr-rhythm').classList.contains('active')?'rhythm':'home';openScreen('audio-source');};
+document.getElementById('audioSourceBack').onclick=()=>openScreen(audioReturnScreen);
+
+// Dedicated watch-design screen shares the same live preview and settings state.
+const designPage=document.createElement('section');designPage.id='scr-watch-design';designPage.className='screen';designPage.inert=true;
+designPage.innerHTML='<button class="back" id="designBack">‹ 返回</button><div class="h1">表盘设计</div><div id="designPreviewSlot"></div>';
+designPage.appendChild(controlCards[1]);document.getElementById('scr-home').after(designPage);
+const sharedPreview=document.querySelector('#scr-home .hero-visual');sharedPreview.id='sharedWatchPreview';const homePreviewSlot=document.createElement('div');homePreviewSlot.id='homePreviewSlot';sharedPreview.before(homePreviewSlot);
+effectDisclosure.open=false;effectDisclosure.ontoggle=null;effectDisclosure.querySelector('summary').innerHTML='表盘设计 <span class="sub">选择 ›</span>';
+effectDisclosure.querySelector('summary').onclick=e=>{e.preventDefault();designReturnScreen=document.getElementById('scr-rhythm').classList.contains('active')?'rhythm':'home';openScreen('watch-design');};
+document.getElementById('designBack').onclick=()=>openScreen(designReturnScreen);
+const petHeading=document.createElement('b');petHeading.textContent='宠物';petLabel.firstChild.replaceWith(petHeading);presetLabel.firstChild.textContent='振动强度';
+const motionDetails=document.createElement('details');motionDetails.id='motionOptions';motionDetails.dataset.customOnly='';motionDetails.style.marginTop='14px';motionDetails.innerHTML='<summary style="cursor:pointer;color:var(--accent)">更多设置</summary>';
+const firstMotion=document.getElementById('motionDirection').parentElement;firstMotion.before(motionDetails);
+for(const id of ['motionDirection','ringRotation'])motionDetails.appendChild(document.getElementById(id).parentElement);
+const burstLabel=document.getElementById('signalBurst').parentElement;burstLabel.firstChild.replaceWith(Object.assign(document.createElement('b'),{textContent:'扩散效果'}));document.getElementById('effectSelect').after(burstLabel);applyVisualSettings();
+
+const petCard=document.createElement('div');petCard.className='card';petCard.id='petCard';petCard.appendChild(petLabel);controlCards[1].before(petCard);petLabel.hidden=false;petSelect.disabled=false;
+const previewSpectrum=document.createElement('canvas');previewSpectrum.id='previewSpectrum';previewSpectrum.width=448;previewSpectrum.height=210;previewSpectrum.hidden=true;previewSpectrum.setAttribute('aria-label','实时频谱');sharedPreview.appendChild(previewSpectrum);
+const previewSwitch=document.createElement('div');previewSwitch.className='preview-switch';previewSwitch.innerHTML='<button type="button" aria-pressed="true">表盘预览</button><button type="button" aria-pressed="false">音频图</button>';sharedPreview.appendChild(previewSwitch);
+[...previewSwitch.children].forEach((button,index)=>button.onclick=()=>{hcv.hidden=index===1;previewSpectrum.hidden=index===0;sharedPreview.classList.toggle('spectrum-view',index===1);[...previewSwitch.children].forEach((b,i)=>b.setAttribute('aria-pressed',String(i===index)));});
+
+
+// Compact editable palette. Keep at least two distinct colors for beat alternation.
+const dynamicColors=document.createElement('div');dynamicColors.id='dynamicColors';dynamicColors.hidden=true;dynamicColors.dataset.customOnly='';
+dynamicColors.innerHTML='<label class="field"><span>任意 RGB 颜色</span><input id="dynamicRGB" type="checkbox"></label><div id="beatPalette" style="display:flex;flex-wrap:wrap;gap:10px"></div><button id="addBeatColor" class="btn ghost" style="margin-top:10px">添加颜色</button><p id="paletteStatus" class="sub" role="status"></p>';
+document.getElementById('fixedColorRow').after(dynamicColors);
+function renderBeatPalette(){
+ const host=document.getElementById('beatPalette');host.replaceChildren();
+ effectColors.palette.forEach((hex,i)=>{const cell=document.createElement('div');cell.style.cssText='display:flex;flex-direction:column;gap:4px';const input=document.createElement('input');input.type='color';input.value=hex;input.setAttribute('aria-label','外环颜色 '+(i+1));input.style.cssText='width:44px;height:44px;padding:0;border:0;border-radius:8px';input.onchange=()=>{if(effectColors.palette.some((c,j)=>j!==i&&c===input.value)){input.value=effectColors.palette[i];document.getElementById('paletteStatus').textContent='请选择不同的颜色';return;}if(effectColors.dynamic===effectColors.palette[i])effectColors.dynamic=input.value;effectColors.palette[i]=input.value;document.getElementById('paletteStatus').textContent='';};cell.appendChild(Object.assign(document.createElement('small'),{textContent:'外环'}));cell.appendChild(input);const bg=document.createElement('input');bg.type='color';bg.value=effectColors.backgrounds[i];bg.style.cssText=input.style.cssText;bg.setAttribute('aria-label','对应背景色 '+(i+1));bg.oninput=()=>effectColors.backgrounds[i]=bg.value;cell.appendChild(Object.assign(document.createElement('small'),{textContent:'背景'}));cell.appendChild(bg);if(effectColors.palette.length>2){const remove=document.createElement('button');remove.className='back';remove.textContent='移除';remove.onclick=()=>{const removed=effectColors.palette.splice(i,1)[0];effectColors.backgrounds.splice(i,1);if(effectColors.dynamic===removed)effectColors.dynamic=effectColors.palette[0];renderBeatPalette();};cell.appendChild(remove);}host.appendChild(cell);});
+}
+document.getElementById('dynamicRGB').onchange=e=>{effectColors.anyRGB=e.target.checked;document.getElementById('beatPalette').hidden=e.target.checked;document.getElementById('addBeatColor').hidden=e.target.checked;};
+document.getElementById('addBeatColor').onclick=()=>{let n=Math.floor(Math.random()*0x1000000),hex;do{hex='#'+(n++%0x1000000).toString(16).padStart(6,'0');}while(effectColors.palette.includes(hex));effectColors.palette.push(hex);effectColors.backgrounds.push(backgroundSettings.hex);renderBeatPalette();};renderBeatPalette();updateColorControls();
+for(const button of [...document.querySelectorAll('#srcSeg button')].reverse())document.getElementById('srcSeg').appendChild(button);
+selectEffect(2);
+document.querySelector('[data-src=system]').click();audioStatus.textContent='';
+
+const usageCard=document.getElementById('todayRhythm').closest('.card');document.querySelector('#scr-modes .h1').after(usageCard);
+for(const scope of [effectsScreen,columns])scope.querySelectorAll('.shop-effect:not([data-pet])').forEach((button,index)=>{const original=button.onclick;button.onclick=()=>{const current=document.querySelector('.screen.active').id.slice(4);original?.();openScreen(current);button.querySelector('span:last-child').textContent='已选用';};button.querySelector('span:last-child').textContent='选用';});
+const backgroundCard=document.createElement('div');backgroundCard.className='card';backgroundCard.dataset.customOnly='';backgroundCard.innerHTML='<b>表盘背景</b><div class="row" style="margin-top:12px"><button class="btn ghost" data-bg="fixed">固定颜色</button><button class="btn ghost" data-bg="rgb">RGB</button><button class="btn ghost" data-bg="image">图片</button></div><label class="field">背景颜色<input id="backgroundColor" type="color" value="#000000"></label><input id="backgroundFile" type="file" accept="image/*" hidden><button class="btn ghost" id="chooseBackground" hidden>选择图片</button><label class="field">背景亮度 <output id="backgroundLevel">100%</output><input id="backgroundBrightness" type="range" min="0" max="100" value="100"></label><p id="backgroundStatus" class="sub" role="status"></p>';
+controlCards[1].after(backgroundCard);
+backgroundCard.querySelectorAll('[data-bg]').forEach(button=>button.onclick=()=>{backgroundSettings.mode=button.dataset.bg;document.getElementById('backgroundColor').parentElement.hidden=backgroundSettings.mode!=='fixed';document.getElementById('chooseBackground').hidden=backgroundSettings.mode!=='image';backgroundCard.querySelectorAll('[data-bg]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));});
+document.getElementById('backgroundColor').oninput=e=>backgroundSettings.hex=e.target.value;
+document.getElementById('backgroundBrightness').oninput=e=>{backgroundSettings.brightness=+e.target.value/100;document.getElementById('backgroundLevel').textContent=e.target.value+'%';};
+document.getElementById('chooseBackground').onclick=()=>document.getElementById('backgroundFile').click();
+document.getElementById('backgroundFile').onchange=e=>{const file=e.target.files[0];if(!file)return;const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{if(backgroundSettings.url)URL.revokeObjectURL(backgroundSettings.url);backgroundSettings.url=url;backgroundSettings.image=img;document.getElementById('backgroundStatus').textContent='已加载背景图片';};img.onerror=()=>{URL.revokeObjectURL(url);document.getElementById('backgroundStatus').textContent='无法读取该图片，请选择其他图片';};img.src=url;};
+applyVisualSettings();
+const profileCard=document.querySelector('#scr-mine .card.row');
+const authActions=document.createElement('div');authActions.className='row';authActions.style.cssText='gap:8px;margin-top:12px';authActions.innerHTML='<button class="btn ghost" id="guestLogin">游客登录</button><button class="btn primary" id="accountLogin">账号登录</button>';profileCard.querySelector('div').appendChild(authActions);
+const authDialog=makeDialog('authDialog','账号登录');const authBody=authDialog.querySelector('.dialog-body');
+function renderAuth(register=false){authDialog.querySelector('h3').textContent=register?'创建账户':'账号登录';authBody.innerHTML='<p class="dialog-copy">账号服务尚未接入。你可以先使用游客模式。</p><form id="authForm">'+(register?'<label class="field">邮箱<input type="email" name="email" autocomplete="email" required></label><label class="field">用户名<input name="username" autocomplete="username" minlength="3" required></label>':'<label class="field">邮箱或用户名<input name="identity" autocomplete="username" required></label>')+'<label class="field">密码<input type="password" name="password" autocomplete="'+(register?'new-password':'current-password')+'" minlength="8" required></label><button class="btn primary block" disabled>'+ (register?'创建账户':'登录') +'（暂未开放）</button></form><button class="back" id="authSwitch">'+(register?'已有账户？登录':'创建账户')+'</button>';authBody.querySelector('form').onsubmit=e=>e.preventDefault();authBody.querySelector('#authSwitch').onclick=()=>renderAuth(!register);}
+document.getElementById('accountLogin').onclick=()=>{renderAuth();authDialog.showModal();};document.getElementById('guestLogin').onclick=()=>{profileCard.querySelector('b').textContent='Haptonics 游客';profileCard.querySelector('.sub').textContent='游客模式';};
+// Themes are compositions; pet, background and custom diffusion stay independent.
+const backgroundLibrary=document.createElement('div');backgroundLibrary.innerHTML='<b>背景库</b><div class="row" style="margin:12px 0"><button class="btn ghost" id="systemBackgrounds">系统</button><button class="btn ghost" id="ownedBackgrounds">我的</button></div><div id="backgroundChoices"></div>';
+backgroundCard.prepend(backgroundLibrary);
+function chooseBackground(asset){backgroundSettings.asset=asset;if(asset==='meteors'){backgroundSettings.mode='fixed';backgroundSettings.hex='#000000';document.getElementById('backgroundColor').value='#000000';}document.getElementById('backgroundStatus').textContent=asset==='meteors'?'已选用流星雨':'已选用系统背景';}
+function showBackgroundLibrary(mine=false){const host=document.getElementById('backgroundChoices');host.replaceChildren();const entries=mine?[['meteors','流星雨 · 德牧套装']]:[['plain','纯色 / RGB / 图片']];for(const [id,title]of entries){const button=document.createElement('button');button.className='btn ghost block';button.textContent=title;button.onclick=()=>chooseBackground(id);host.appendChild(button);}}
+document.getElementById('systemBackgrounds').onclick=()=>showBackgroundLibrary(false);document.getElementById('ownedBackgrounds').onclick=()=>showBackgroundLibrary(true);showBackgroundLibrary();
+const themeCard=document.createElement('div');themeCard.className='card';themeCard.innerHTML='<b>主题套装</b><button class="btn ghost block" id="chooseShepherdTheme" style="margin-top:12px">德牧 · 预览套装</button>';petCard.before(themeCard);
+function applyShepherdTheme(){
+ Object.assign(visualSettings,builtinDefaults);effectProfiles.builtin={...builtinDefaults};selectEffect(2);selectPet('shepherd');
+ Object.assign(customMotion,{direction:'in',burst:'dots',rotation:'cw'});
+ for(const [id,value]of [['motionDirection','in'],['signalBurst','dots'],['ringRotation','cw'],['colorMode','rgb'],['visualPreset','balanced']])document.getElementById(id).value=value;
+ Object.assign(effectColors,{mode:'rgb',hex:'#5eead4',palette:['#000000','#ffffff'],backgrounds:['#ffffff','#000000'],dynamic:'#000000',anyRGB:false,lastBeat:-Infinity});
+ document.getElementById('dynamicRGB').checked=false;document.getElementById('dynamicRGB').onchange({target:document.getElementById('dynamicRGB')});renderBeatPalette();
+ backgroundSettings.brightness=1;document.getElementById('backgroundBrightness').value=100;document.getElementById('backgroundLevel').textContent='100%';chooseBackground('meteors');applyVisualSettings();
+}
+const storePreview=makeDialog('storePreview','预览');const previewBody=storePreview.querySelector('.dialog-body');
+previewBody.innerHTML='<canvas id="storePreviewCanvas" width="360" height="360" style="display:block;width:100%;max-width:240px;margin:auto;border-radius:50%;background:#000"></canvas><p class="sub" style="text-align:center">模拟节奏预览</p><p id="storePreviewDescription" class="dialog-copy"></p><button class="btn primary block" id="useStoreItem">免费使用</button>';
+let storeItem=null,storeFrame=0;const storeCanvas=document.getElementById('storePreviewCanvas'),storeCtx=storeCanvas.getContext('2d'),storeRave=new RaveOriginal();
+const previewBassTrigger=Object.create(BassTrigger);previewBassTrigger.reset();
+const previewShepherd=Object.assign(Object.create(Shepherd),{stars:[],cooldowns:new Map()});previewShepherd.reset();
+const effectCatalog=[{name:'线条',effect:0},{name:'粒子散发',effect:1},{name:'尖刺',effect:2},{name:'raVe 原版',effect:3},{name:'极光线条',effect:0,preset:'gentle'},{name:'星尘散发',effect:1,preset:'vivid'}];
+function openStorePreview(item){storeItem=item;storePreview.querySelector('h3').textContent=item.name;document.getElementById('storePreviewDescription').textContent=item.bundle?'包含德牧宠物、流星雨背景与默认尖刺搭配。使用后仍可单独更换各项元素。':item.background?'流星雨可与任意宠物及扩散效果搭配。':item.pet?'使用此宠物，保留当前背景和律动效果。':'使用此特效，保留当前宠物和背景。';previewShepherd.reset();previewBassTrigger.reset();storePreview.showModal();cancelAnimationFrame(storeFrame);storeFrame=requestAnimationFrame(drawStorePreview);}
+const closeStorePreview=storePreview.close;storePreview.close=()=>{cancelAnimationFrame(storeFrame);storeItem=null;closeStorePreview();};
+function drawStorePreview(ms){if(!storeItem)return;const t=ms/1000,beat=Math.pow(Math.max(0,Math.sin(t*Math.PI*4)),10),item=storeItem;
+ const saved={pet:selectedPet,motion:{...motion},custom:{...customMotion},bg:{...backgroundSettings},colors:{...effectColors},visual:{...visualSettings}};
+ try{
+  if(item.preset)Object.assign(visualSettings,visualPresets[item.preset]);
+  selectedPet=item.bundle?'shepherd':item.pet||'none';motion.envelope=.3+beat*.5;motion.shock=beat;motion.samples=Array.from({length:128},(_,i)=>1+.12+beat*.18+Math.sin(i*.3+t)*.09);motion.history=[];
+  customMotion.angle=t*.65;customMotion.events=[{time:t-(t%.5),strength:.8}];customMotion.burst='dots';
+  Object.assign(backgroundSettings,{mode:'fixed',hex:'#000000',brightness:1,asset:'plain'});effectColors.mode='rgb';
+  storeCtx.clearRect(0,0,360,360);drawCustomBackground(storeCtx,360,360,t);
+  const previewBassEvent=previewBassTrigger.step([beat],1/60);
+  previewShepherd.step({bassPeak:previewBassTrigger.strength,high:.2},1/60,appSettings.reduceMotion,.1,previewBassEvent);
+  if(item.bundle||item.background)previewShepherd.drawMeteors(storeCtx,0,0,360,360);
+  if(item.effect===3){const savedData=raveData.map(row=>({time:row.time.slice(),freq:row.freq?.slice()}));try{for(let i=0;i<2048;i++){raveData[0].time[i]=128+Math.sin(i*.05+t)*beat*60;raveData[1].time[i]=Math.sin(i*.025+t)*beat*.5;}for(let i=0;i<1024;i++)raveData[0].freq[i]=beat*180*Math.exp(-i/140);storeRave.renderFrame(t);storeCtx.drawImage(storeRave.canvas,0,0,360,360);}finally{savedData.forEach((row,i)=>{raveData[i].time.set(row.time);if(row.freq)raveData[i].freq.set(row.freq);});}}
+  else if(!item.pet&&!item.background)drawBuiltin(storeCtx,360,360,t,true,item.effect??2);
+  if(selectedPet==='shepherd')previewShepherd.draw(storeCtx,360,360,t,true,appSettings.reduceMotion);else if(item.pet)drawCat(storeCtx,360,360,t,true);
+ }finally{selectedPet=saved.pet;Object.assign(motion,saved.motion);Object.assign(customMotion,saved.custom);Object.assign(backgroundSettings,saved.bg);Object.assign(effectColors,saved.colors);Object.assign(visualSettings,saved.visual);}
+ storeFrame=requestAnimationFrame(drawStorePreview);
+}
+document.getElementById('useStoreItem').onclick=()=>{const item=storeItem;if(!item)return;if(item.bundle)applyShepherdTheme();else if(item.background)chooseBackground('meteors');else if(item.pet)selectPet(item.pet);else{selectEffect(item.effect);if(item.preset){Object.assign(visualSettings,visualPresets[item.preset]);visualPreset.value=item.preset;applyVisualSettings();}}storePreview.close();};
+for(const root of [effectsScreen,petsScreen,columns])for(const button of root.querySelectorAll('.shop-effect')){const item=button.dataset.pet?{pet:button.dataset.pet,name:PETS[button.dataset.pet].name}:effectCatalog.find(item=>button.querySelector('b')?.textContent===item.name||item.effect===3&&button.querySelector('b')?.textContent==='raVe');if(item){button.onclick=()=>openStorePreview(item);button.querySelector('span:last-child').textContent='预览 ›';}}
+const shepherdTheme={name:'德牧套装',bundle:true};document.getElementById('shepherdDemo').onclick=()=>openStorePreview(shepherdTheme);document.getElementById('shepherdDemo').querySelector('span:last-child').textContent='预览 ›';document.getElementById('chooseShepherdTheme').onclick=()=>openStorePreview(shepherdTheme);
+const meteorItem=document.createElement('button');meteorItem.className='shop-effect';meteorItem.innerHTML='<div><b>流星雨背景</b><small>德牧套装 · 可单独使用</small></div><span>预览 ›</span>';meteorItem.onclick=()=>openStorePreview({name:'流星雨背景',background:true});bundles.appendChild(meteorItem);
+
+// Translation records retain the source text so language changes remain reversible.
+let language='zh';try{language=localStorage.getItem('musex-language')==='en'?'en':'zh';}catch(e){}
+const translations=Object.fromEntries(`
+系统|System
+我的|My
+背景库|Background library
+流星雨 · 德牧套装|Meteor shower · Shepherd bundle
+纯色 / RGB / 图片|Solid / RGB / image
+流星雨背景|Meteor shower background
+德牧套装|Shepherd bundle
+免费使用|Use for free
+预览 ›|Preview ›
+模拟节奏预览|Simulated rhythm preview
+德牧 · 预览套装|Shepherd · Preview bundle
+表盘背景|Watch background
+背景颜色|Background color
+背景亮度|Background brightness
+图片|Image
+选择图片|Choose image
+外环|Ring
+背景|Background
+个性化你的体验|Personalize your experience
+游客登录|Continue as guest
+账号登录|Account login
+创建账户|Create account
+邮箱|Email
+用户名|Username
+邮箱或用户名|Email or username
+密码|Password
+账号服务尚未接入。你可以先使用游客模式。|Account service is not connected yet. You can continue as a guest.
+表盘预览|Watch preview
+音频图|Audio spectrum
+实时频谱|Live spectrum
+表盘设计|Watch design
+律动设置|Motion settings
+振动强度|Vibration intensity
+律动方向|Motion direction
+向外 · 环形|Outward · ring
+向内 · 满屏|Inward · full watch
+扩散效果|Diffusion effect
+环形旋转|Ring rotation
+顺时针|Clockwise
+逆时针|Counterclockwise
+选择 ›|Choose ›
+‹ 返回|‹ Back
+无|None
+颗粒|Dots
+环形|Rings
+选择选项|Choose an option
+0 dB = 近期频谱平均功率；范围 −12 至 +12 dB，并非 dBFS|0 dB = recent average spectrum power; −12 to +12 dB, not dBFS
+今日心情|Today’s mood
+麦克风灵敏度|Microphone sensitivity
+选择音乐文件|Choose music file
+播放|Play
+暂停|Pause
+播放进度|Playback position
+德牧|German Shepherd
+戴墨镜的德牧|German Shepherd wearing sunglasses
+体验 Demo ›|Try demo ›
+LOW 放大 · MID 暂停 · HIGH 流星雨|LOW scale pulse · MID off · HIGH meteors
+LOW 放大 · MID 暂停 · HIGH 流星|LOW scale pulse · MID off · HIGH meteors
+LOW 20–250 Hz · MID 250 Hz–1 kHz · HIGH 1 kHz 以上|LOW 20–250 Hz · MID 250 Hz–1 kHz · HIGH 1 kHz+
+主题套装|Theme bundles
+搭配特效、宠物与色彩的完整主题|Coordinated effects, pets and colors
+敬请期待|Coming soon
+极光线条|Aurora lines
+星尘散发|Stardust
+自制特效预设|Custom effect preset
+感受音乐，看见律动|Feel music, see rhythm
+声音的形状|The shape of sound
+等待音频|Waiting for audio
+音频源|Audio source
+展开 ▾|Expand ▾
+收起 ▴|Collapse ▴
+演示节奏|Demo beat
+上传音乐|Upload music
+麦克风|Microphone
+设备音频|Device audio
+音频输入设备|Input device
+系统默认输入|Default input
+播放输出设备|Output device
+跟随系统默认输出|System default output
+▶ 开始分析|▶ Start analysis
+开始分析|Start analysis
+停止分析|Stop analysis
+取消连接|Cancel
+律动效果|Visual effect
+律动效果与宠物|Effects & pets
+线条|Lines
+粒子散发|Particles
+尖刺|Spikes
+raVe 原版 · 双环频谱|raVe original · Dual spectrum
+raVe 原版|raVe original
+raVe 保留原始参数与画面。以下调节仅用于自制特效；中心宠物独立叠加|raVe retains its original visuals and parameters; controls apply to custom effects; pets are independent overlays
+色彩模式|Color mode
+RGB 循环|RGB cycle
+固定颜色|Fixed color
+效果颜色|Effect color
+高级灵敏度设置|Advanced sensitivity
+更多设置|More settings
+低频变色|Bass color switch
+添加颜色|Add color
+任意 RGB 颜色|Any RGB color
+移除|Remove
+向内|Inward
+向外|Outward
+参数说明|About parameters
+参数实时应用到手机与手表。视觉增益不改变播放音量；内置效果默认更灵敏，颜色与形态可独立选择|Changes apply to both previews; visual gain does not affect playback volume, and color is independent of shape
+觉得波动偏小？先将输入增益调到 1.5–2.0。低频倍率控制鼓点起伏；降低平滑会更灵敏；增大拖影保留会留下更长的彩色轨迹|For stronger motion try gain 1.5–2.0; bass boosts beats, lower smoothing reacts faster, and higher trail retention leaves longer traces
+视觉输入增益|Sensitivity
+低频起伏倍率|Bass response
+频谱平滑|Smoothing
+拖影保留|Trail length
+RGB 循环速度|Color cycle speed
+重置参数|Reset parameters
+算法来源：ajm13 / raVe|Source: ajm13 / raVe
+宠物|Pet
+预设|Preset
+均衡|Balanced
+柔和|Gentle
+动感|Vivid
+自定义|Custom
+音乐律动|Music rhythm
+预设计特效随音乐频率变化，同步到手表屏幕|Audio-reactive visuals synchronized with the watch
+呼吸疗愈|Breathing
+震动 + 灯光引导，5秒吸气 · 5秒呼气|Light and touch · inhale 5s, exhale 5s
+节拍器|Metronome
+自选拍号、速度与震动强度|Choose meter, tempo and haptic intensity
+减压震动|Relaxation
+低频震动模式，快速平复紧张情绪|Gentle vibration to help you unwind
+未连接设备|No device connected
+点击连接 Haptonics 手表|Connect your Haptonics watch
+连接|Connect
+今日疗愈|Today’s practice
+次|sessions
+分钟|min
+呼吸练习|Completed breathing sessions
+音乐律动时长|Music rhythm time
+最近心情|Recent mood
+‹ 模式|‹ Modes
+选择喜欢的光效，让声音变成可见的节奏|Choose a visual and turn sound into motion
+实时频段（发送至手表）|Live frequency bands
+低频 · 鼓点|Bass · drums
+中频 · 人声|Mids · vocals
+高频 · 镲片|Treble · cymbals
+数据刷新率|Data refresh rate
+传输未接入|Not streaming
+端到端延迟|End-to-end latency
+特效图案（预设计）|Visual effects
+同步到手表|Sync to watch
+关闭后仅在手机预览，不占用蓝牙带宽|Turn off to preview on the phone only
+震动提示吸气 · 图案同步缩放 · 引导你回到当下|Follow the light and gentle touch of each breath
+呼吸模式|Breathing pattern
+5-5 均衡|5-5 Balanced
+吸5秒 · 呼5秒|In 5s · out 5s
+4-7-8 放松|4-7-8 Relax
+吸4秒 · 屏7秒 · 呼8秒|In 4 · hold 7 · out 8
+方形呼吸|Box breathing
+吸-屏-呼-屏 各4秒|4-4-4-4 rhythm
+感官通道|Sensory channels
+电机震动|Haptics
+屏幕灯光律动|Screen light
+吸气阶段|Inhale
+持续轻震 · 每秒短震|Soft vibration · accent each second
+图案向外扩散|Visual expands
+呼气阶段|Exhale
+震动停止|Vibration pauses
+图案向内收敛|Visual contracts
+练习设置|Practice settings
+时长|Duration
+30秒|30 seconds
+1分钟|1 minute
+3分钟|3 minutes
+自定义时长（秒）|Custom duration (seconds)
+达到时长后，完成当前呼吸循环再结束|Finish the current breathing cycle when the time is up
+震动强度|Haptic intensity
+轻柔|Gentle
+标准|Standard
+有力|Strong
+开始疗愈|Start breathing
+开始后请将手表佩戴于手腕，跟随震动节奏呼吸|Wear your watch and breathe with the rhythm
+‹ 我的|‹ Profile
+设备|Devices
+通过 Web Bluetooth（BLE）连接带屏幕的智能手表|Connect a compatible watch using Web Bluetooth
+BLE · GATT 服务就绪|BLE · GATT ready
+电量 --|Battery --
+固件 v1.0|Firmware v1.0
+连接手表（Web Bluetooth）|Connect watch (Web Bluetooth)
+BLE 数据通道|BLE channels
+频率数据通道|Frequency channel
+本地视觉预览|Local visual preview
+特效控制通道|Effect channel
+本地效果设置|Local effect settings
+震动控制通道|Haptic channel
+呼吸节奏通道|Breathing channel
+本地节奏预览|Local rhythm preview
+MTU / 吞吐|MTU / throughput
+按连接能力协商|Negotiated on connection
+其他设置|Other settings
+息屏时保持震动引导|Keep haptics when screen is off
+夜间自动降低亮度|Dim screen at night
+低电量暂停特效同步|Pause visuals on low battery
+模式|Modes
+找到此刻适合你的节奏|Find your rhythm for this moment
+频谱与波形，跟随声音展开|Watch sound unfold
+慢慢呼吸，回到当下|Breathe slowly, return to the moment
+拍号、BPM 与触觉节奏|Meter, BPM and haptic rhythm
+缓慢、有规律的轻柔脉冲|Slow, regular, gentle pulses
+疗愈日记|Mood diary
+在日历上，留下一枚心情|Leave a mood on your calendar
+看见节拍，也感受节拍。BPM 以四分音符计|See and feel each beat; BPM counts quarter notes
+准备开始|Ready
+拍号|Time signature
+速度 BPM|Tempo BPM
+开始节拍|Start metronome
+视觉与震动同步。浏览器支持时提供手机震动；连接兼容的手表后发送强度指令。电脑自身通常不能震动|Haptics require a compatible watch or vibration-capable phone
+连接震动设备 ›|Connect haptic device ›
+把注意力放在缓慢起伏的节奏上|Focus on a slow, steady rhythm
+脉冲间隔（秒）|Pulse interval (seconds)
+时长（分钟）|Duration (minutes)
+开始放松|Start relaxing
+尚未开始|Not started
+可在右侧查看脉冲效果。实际震动需兼容设备，随时可停止|Preview pulses on the right; physical vibration requires compatible hardware
+不必写很多，记录这一刻就好|A small note for this moment
+一|Mon
+二|Tue
+三|Wed
+四|Thu
+五|Fri
+六|Sat
+日|Sun
+清除记录|Clear entry
+选择日期，再轻点心情|Select a date, then choose a mood
+设置|Settings
+外观|Appearance
+显示模式|Display mode
+深色|Dark
+浅色|Light
+跟随系统|System
+主题色|Theme color
+文字大小|Text size
+较大|Larger
+播放与体验|Playback & experience
+允许震动反馈|Enable haptics
+减弱自制特效动态|Reduce custom effect motion
+动画流畅度|Animation quality
+精致 · 120 帧|Detailed · up to 120 fps
+流畅 · 60 帧上限|Smooth · up to 60 fps
+省电 · 30 帧上限|Battery saver · up to 30 fps
+恢复设置|Reset settings
+隐私与存储|Privacy & storage
+主题、宠物与心情记录保存在此浏览器。音频只在本机处理，不上传|Preferences and moods stay in this browser; audio is processed locally
+抹除本地数据|Erase local data
+抹除全部 Haptonics 心情记录和设置？此操作无法撤销|Erase all Haptonics moods and settings? This cannot be undone
+商城|Store
+为每一首歌，挑选不同的视觉表达|A different visual for every song
+特效区|Effects
+自制特效可调整颜色与灵敏度；raVe 保留原始效果|Customize our effects; raVe stays original
+流动轮廓与波形拖影|Flowing outlines and trails
+试用 ›|Try ›
+随节奏散开的光点|Particles that dance to the beat
+有棱角的放射频谱|A sharp radial spectrum
+双环与彩色扩散|Dual rings and color trails
+宠物区|Pets
+选择圆环中心的宠物轮廓，手机与手表同步显示。仅用于自制特效|Choose a companion for custom effects on both previews
+更多视觉特效包|More visual packs
+后续上架独立特效与主题组合|More effects and themes are on the way
+购买功能筹备中|Purchasing coming soon
+更多 ›|More ›
+居中轮廓 · 轻柔律动|Centered outline · gentle motion
+猫咪|Cat
+兔子|Rabbit
+小熊|Bear
+狐狸|Fox
+狼|Wolf
+无宠物|No pet
+已选用|Selected
+选用|Select
+社区|Community
+在相似的节奏里，遇见彼此|Connect through a shared rhythm
+你的声音，值得被听见|Your sound deserves to be heard
+未来可以在这里分享律动灵感、音乐和练习感受|A future space for music, inspiration and reflections
+社区即将开放|Community coming soon
+目前尚未接入发布或互动服务|Posting and interaction are not available yet
+先记录今天的心情|Record today’s mood
+我的|Profile
+个性化你的体验|A little quiet space for yourself
+Haptonics 体验者|Haptonics explorer
+本地体验 · 无需登录|Local experience · no sign-in
+我的设备|My devices
+关于 Haptonics|About Haptonics
+用声音、光与触觉，探索自己的节奏|Explore your rhythm through sound, light and touch
+主页|Home
+WATCH · 实时预览（手表端渲染效果）|WATCH · Live preview
+振动电机|Haptic motor
+待机|Idle
+当前模式|Current mode
+表盘待机|Watch idle
+实时频谱 · 频率 / 相对音量|Live spectrum · frequency / level
+等待音频 · 频率 / 相对音量|Waiting for audio · frequency / level
+演示频谱 · 非真实录音|Demo spectrum · simulated audio
+特效|Effect
+手机 Web App|Phone Web App
+音频采集 + Web Audio 频率分析|Audio capture + Web Audio analysis
+模式控制 / 特效选择 / 疗愈参数|Modes / effects / breathing settings
+BLE 蓝牙传输|BLE connection
+频段数据 30Hz · 控制指令|Frequency data 30 Hz · control commands
+智能手表|Smart watch
+① 律动特效渲染（预设计图案）|① Audio-reactive visuals
+② 情感疗愈：灯光律动 + 电机震动|② Breathing with light and haptics
+佩戴者体验|Wearer experience
+视觉 + 触觉双通道反馈|Visual and haptic feedback
+疗愈效果|Breathing experience
+呼吸调节 · 情绪舒缓 · 压力释放|Breathe · unwind · relax
+5秒震动吸气 → 5秒静止呼气|Inhale 5s with vibration → exhale 5s in stillness
+心情|Mood
+平静|Calm
+一般|Neutral
+低落|Sad
+疲惫|Tired
+已清除此日记录|Entry cleared
+浏览器不允许保存，记录仅在本次打开期间保留|Storage unavailable; entries last for this session only
+最近七天最常记录的心情；并列时取最近记录|Most frequent mood in seven days; latest entry breaks ties
+最近七天暂无心情记录|No mood entries in the past seven days
+麦克风 · 实时|Microphone · live
+共享音频 · 实时|Shared audio · live
+正在准备音频…|Preparing audio…
+请选择音频文件|Choose an audio file
+演示数据 · 未采集声音|Demo data · no audio captured
+音频分析中|Analyzing audio
+已停止音频分析|Audio analysis stopped
+律动强度 · 预览|Haptic intensity · preview
+连续波形环|Continuous waveform ring
+随节奏向外散发|Particles radiating to the beat
+放射状频谱尖刺|Radial spectrum spikes
+双环 · 频谱 · 彩色拖影|Dual rings · spectrum · color trails
+与主页同步 · 律动预览|Synced with home · live preview
+同步已关闭|Sync off
+吸 气|Inhale
+屏 息|Hold
+呼 气|Exhale
+结束当前疗愈并切换模式？|End this breathing session and switch patterns?
+结束疗愈|End session
+呼吸疗愈 · 进行中|Breathing · in progress
+已停止|Stopped
+停止|Stop
+已发送震动指令|Haptic command sent
+震动节奏预览|Haptic rhythm preview
+当前浏览器不支持蓝牙连接，视觉预览可继续使用|Bluetooth is unavailable in this browser; visuals remain available
+搜索设备…|Searching…
+设备不支持震动指令写入|Device does not support haptic commands
+已连接 · 按设备 BOOT 启用马达|Connected · press device BOOT to enable motor
+电量未知|Battery unknown
+已连接兼容设备。按设备 BOOT 启用马达；强度指令会在节拍发生时发送|Connected; press device BOOT to enable haptics
+连接设备|Connect device
+已连接 · 点击断开|Connected · disconnect
+BLE 已连接 · 震动控制就绪|BLE connected · haptics ready
+BLE · GATT 已连接|BLE · GATT connected
+轻柔震动|Gentle vibration
+标准震动|Standard vibration
+有力震动|Strong vibration
+静止 · 屏息|Still · hold
+静止 · 呼气|Still · exhale
+疗愈中 · 吸气(震动)|Breathing · inhale (haptics)
+疗愈中 · 屏息|Breathing · hold
+疗愈中 · 呼气|Breathing · exhale
+关闭|Close
+选择心情|Choose a mood
+输入其他心情 emoji|Enter another mood emoji
+自定义心情 emoji|Custom mood emoji
+记录心情|Save mood
+请选择一个 emoji|Choose an emoji
+Mac 可按 Control + Command + 空格打开系统表情选择器|On Mac press Control + Command + Space for the system emoji picker
++ 自定义|+ Custom
+语言 / Language|Language / 语言
+`.trim().split('\n').map(line=>line.split('|')));
+Object.assign(translations,{
+'‹ 商城':'‹ Store',
+'内置演示节奏：128 BPM 电子鼓点（无需麦克风权限）':'Demo: 128 BPM electronic drums · no microphone required',
+'允许访问本地音频设备':'Allow audio device access',
+'选择并授权播放输出':'Choose output',
+'原型说明：右侧手表模拟器实时演示手表端的特效与震动节奏 · 律动页选择「演示节奏」无需麦克风即可看到效果 · 真机上通过 Web Bluetooth API（navigator.bluetooth）连接 BLE 手表':'Prototype: the watch preview shows visuals and haptic timing; demo mode needs no microphone; compatible watches connect through Web Bluetooth',
+'当前浏览器不支持网页选择输出，请在 macOS 声音设置中选择':'Output selection is unavailable here; use your system sound settings',
+'已更新上传音乐的播放输出；麦克风/BlackHole 不回放以避免回声':'Playback output updated; live inputs are not monitored to avoid feedback',
+'音频权限被拒绝。请在浏览器站点权限及 macOS「隐私与安全性 → 麦克风」中允许当前浏览器，然后刷新':'Audio permission denied; allow this browser in site permissions and macOS Privacy & Security → Microphone, then reload',
+'系统未提供可用的音频输入。请检查设备连接':'No audio input is available; check your device connection',
+'设备无法打开，可能被其他应用占用。关闭其他录音应用后重试':'Cannot open this input; close other recording apps and retry',
+'所选设备已失效，请刷新设备列表':'The selected device is unavailable; reconnect it and retry',
+'此页面无法获得音频权限，请在支持录音的浏览器中打开':'Audio capture is unavailable; open this page in a browser that supports recording',
+'当前浏览器未提供录音接口。请使用 Chrome 打开页面并允许麦克风权限':'Recording is unavailable here; open in Chrome and allow microphone access',
+'当前浏览器不支持设备音频共享。请在 Chrome 中尝试共享标签页音频，或选择已安装的 BlackHole':'Device audio sharing is unavailable; try sharing a Chrome tab with audio or select an installed virtual audio input',
+'此次共享没有音频。请勾选「共享音频」；macOS 通常可共享 Chrome 标签页音频，整个系统音频取决于浏览器支持':'The share has no audio; enable Share audio. Chrome tab audio is typically available on macOS; system audio depends on browser support',
+'音频输入已断开，请重新选择设备':'Audio input disconnected; choose a device again',
+'已选择输入设备，点击开始分析':'Input selected; click Start analysis',
+'请选择音频输入设备':'Choose an audio input',
+'设备写入失败，当前仅显示视觉预览。请重新连接':'Haptic command failed; reconnect the device. Visual preview remains available',
+'音频权限未允许 · 请点击授权':'Audio permission not allowed · start to retry',
+'设备访问失败 · 请重试':'Device access failed · retry'
+});
+
+function tr(text){if(language!=='en')return text;const key=text.trim().replace(/[。.]$/,'');if(translations[key])return translations[key];if(/^无法开始：/.test(text))return 'Unable to start: '+tr(text.slice(5));if(/^未连接：/.test(text))return 'Disconnected: '+tr(text.slice(4));
+ return text.replace(/^(\d+)年\s*(\d+)月$/,(_,y,m)=>`${y} / ${m}`).replace(/本次 (\d+) 秒，结束于完整循环[。]?/, 'This session: $1 seconds, ending on a complete cycle').replace(/已选择(.+) · 应用于自制特效，raVe 保持原样/,(_,pet)=>`${translations[pet]||pet} selected · custom effects only`).replace(/已记录 · (\S+) (.*)/,(_,d,m)=>`Saved · ${d} ${translations[m]||m}`).replace(/节拍器 · /,'Metronome · ').replace(/第 (\d+) 拍/,'Beat $1').replace(/(\d+) 秒/g,'$1 s').replace(/剩余 /,'Remaining ').replace(/ 分钟/g,' min').replace(/^已加载：/,'Loaded: ');
+}
+const originalText=new WeakMap(),originalAttrs=new WeakMap();
+function translateNode(node){if(node.nodeType===3){const parent=node.parentElement;if(!parent||parent.closest('script,style'))return;const prior=originalText.get(node),raw=node.nodeValue;if(!prior||raw!==prior.output)originalText.set(node,{source:raw,output:raw});const rec=originalText.get(node);let source=rec.source;if(!parent.closest('[role=dialog]')&&parent.closest('.sub,small,.file-name,.visual-label,figcaption'))source=source.replace(/[。.]\s*$/,'');let output=tr(source);if(parent.closest('.dialog-copy')&&/[。.]$/.test(source)&&!/[。.!?]$/.test(output))output+=language==='en'?'.':'。';rec.output=output;if(raw!==output)node.nodeValue=output;return;}if(node.nodeType!==1)return;
+ for(const attr of ['aria-label','title','placeholder'])if(node.hasAttribute(attr)){let map=originalAttrs.get(node);if(!map){map={};originalAttrs.set(node,map);}const raw=node.getAttribute(attr),prev=map[attr];if(!prev||raw!==prev.output)map[attr]={source:raw,output:raw};const rec=map[attr];rec.output=tr(rec.source);if(raw!==rec.output)node.setAttribute(attr,rec.output);}
+ for(const child of node.childNodes)translateNode(child);
+}
+function applyLanguage(){document.documentElement.lang=language==='en'?'en':'zh-CN';document.getElementById('language').value=language;translateNode(document.body);}
+document.getElementById('language').onchange=e=>{language=e.target.value;try{localStorage.setItem('musex-language',language);}catch(e){}applyLanguage();};
+const translationObserver=new MutationObserver(records=>{for(const rec of records){if(rec.type==='characterData')translateNode(rec.target);else for(const node of rec.addedNodes)translateNode(node);}});
+applyLanguage();translationObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+
+// Restored pet selection does not override the chosen visual effect.
+</script>
+</body>
+</html>
