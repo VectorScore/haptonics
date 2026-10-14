@@ -153,3 +153,13 @@ Custom motion, diffusion bursts, bass colors and Shepherd scaling now share raVe
 Continuous bass motion also uses the filtered waveform peak. Custom gain/bass controls scale the visual response, not detection; microphone sensitivity still applies to the separate full-band spectrum. LOW/MID/HIGH spectrum displays retain their existing frequency bands. HIGH meteor detection, full-band silence handling, Shepherd's 500 ms release, and the original raVe renderer remain unchanged. The store pet preview uses an independent instance of the same detector.
 
 Validation: `node web/tests/shepherd.test.cjs` passes reference-equation parity, sustained bass, negative waveform peaks, close attacks, reset, 120 Hz sampling cadence, shared consumer wiring, HIGH emission, release, backgrounds and inline script syntax checks. Original raVe audio/render/update code was compared unchanged. Live audio and physical hardware have not been verified.
+
+## Community server
+
+Run `python3 community_server.py 8000` from `web/`, then open `http://127.0.0.1:8000/`. Opening the HTML file directly leaves account and community requests unavailable. Python 3.10+ is required; no third-party packages are needed. The server binds to localhost and stores account, group and chat data in `web/community.sqlite3` by default. Set `HAPTONICS_DB` to an absolute path to move the database. Back up this file to retain accounts and messages. For access from other devices or public hosting, use a trusted HTTPS reverse proxy, secure deployment and backups; the included server is intended for local development.
+
+Registered accounts can discover public groups, create public or code-only groups, join with an eight-character invitation code, find users, add friends, and chat. Both people must add one another before direct chat works. Group messages require membership. The server masks a small English/Chinese profanity list when storing messages. It is a basic filter, not full moderation.
+
+The existing local daily rhythm counts, completed breathing sessions and recent mood sync after sign-in. Completed breathing duration is recorded from this version forward; historical duration is not invented. Settings → Privacy controls whether other accounts see statistics and recent mood; both are off by default. Audio files and microphone audio are never uploaded by Community. Account passwords are salted with scrypt; sessions use HttpOnly SameSite cookies. This local server has no email verification or password recovery.
+
+Run `python3 tests/community.test.py` for the API flow tests and `node tests/shepherd.test.cjs` for the existing rendering tests.

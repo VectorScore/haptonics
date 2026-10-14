@@ -26,3 +26,6 @@ web.zip
 *.docx
 *_BACKUP*.md
 web/shepherd-wind-preview.html
+
+# Community database
+web/community.sqlite3*
